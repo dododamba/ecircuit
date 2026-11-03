@@ -1,0 +1,246 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Mon Profil &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Mon Profil & Sécurité{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Tableau de bord', 'url': path('app_dashboard')},
+    {'label': 'Mon profil'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de la page -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Espace personnel et sécurité du compte
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Consultez votre affectation administrative, vos habilitations et gérez vos identifiants d'accès.
+        </p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Colonne 1 : Fiche d'identité & Structure (2 colonnes sur lg) -->
+    <div class="lg:col-span-2 flex flex-col gap-6">
+        
+        <!-- Carte Informations Personnelles -->
+        <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden">
+            <div class="p-6 border-b border-border/60 bg-secondary/10 flex items-center gap-4">
+                <div class="size-16 rounded-full bg-primary/10 text-primary font-extrabold text-xl flex items-center justify-center shrink-0 uppercase border border-primary/20 shadow-xs">
+                    {{ user.firstName|first }}{{ user.lastName|first }}
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-foreground">
+                            {{ user.fullName }}
+                        </h3>
+                        {% if user.active %}
+                            <span class="kt-badge kt-badge-success kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                <span>Actif</span>
+                            </span>
+                        {% else %}
+                            <span class="kt-badge kt-badge-destructive kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                <span class="size-1.5 rounded-full bg-red-500"></span>
+                                <span>Désactivé</span>
+                            </span>
+                        {% endif %}
+                    </div>
+                    <span class="text-xs text-muted-foreground mt-0.5">
+                        {{ user.email }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+                    Informations du compte
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Prénom</span>
+                        <span class="font-semibold text-foreground text-sm">{{ user.firstName }}</span>
+                    </div>
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Nom</span>
+                        <span class="font-semibold text-foreground text-sm">{{ user.lastName }}</span>
+                    </div>
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Adresse électronique</span>
+                        <span class="font-semibold text-foreground text-sm">{{ user.email }}</span>
+                    </div>
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Numéro de téléphone</span>
+                        <span class="font-semibold text-foreground text-sm">{{ user.phone|default('Non renseigné') }}</span>
+                    </div>
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Identifiant (login)</span>
+                        <span class="font-semibold text-foreground text-sm">{{ user.username|default(user.email) }}</span>
+                    </div>
+                    <div class="p-3 rounded-lg bg-secondary/20 border border-border/40">
+                        <span class="text-muted-foreground block text-[11px] mb-1">Dernière connexion</span>
+                        <span class="font-semibold text-foreground text-sm">
+                            {{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y à H:i') : 'Première session' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Affectation Administrative -->
+            <div class="p-6 border-t border-border/60">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Affectation Institutionnelle
+                </h4>
+                {% if user.organizationUnit %}
+                    <div class="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-3">
+                        <div class="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="ki-filled ki-bank text-xl"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-foreground">
+                                {{ user.organizationUnit.name }}
+                            </span>
+                            <span class="text-xs text-muted-foreground mt-0.5 font-medium">
+                                Type : <span class="capitalize">{{ user.organizationUnit.type.value }}</span>
+                            </span>
+                            <span class="text-[11px] text-primary/80 mt-1 font-mono">
+                                {{ user.organizationUnit.hierarchyPath }}
+                            </span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-4 rounded-xl border border-dashed border-border text-xs text-muted-foreground text-center">
+                        Aucune structure administrative affectée à ce compte.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Rôles et Habilitations -->
+            <div class="p-6 border-t border-border/60">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                    Rôles & Habilitations attribués
+                </h4>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    {% for role in user.accessRoles %}
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-semibold text-foreground">
+                            <i class="ki-filled ki-shield-tick text-primary text-sm"></i>
+                            <span>{{ role.label }}</span>
+                            <code class="text-[10px] font-mono text-muted-foreground ms-1">({{ role.code }})</code>
+                        </div>
+                    {% else %}
+                        <span class="text-xs text-muted-foreground italic">Aucun rôle administratif assigné.</span>
+                    {% endfor %}
+                </div>
+
+                <!-- Aperçu des permissions actives -->
+                <div class="mt-4 pt-4 border-t border-border/40">
+                    <span class="text-[11px] font-semibold text-muted-foreground block mb-2">
+                        Droits effectifs sur la plateforme :
+                    </span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        {% set countedPerms = [] %}
+                        {% for role in user.accessRoles %}
+                            {% for perm in role.permissions %}
+                                {% if perm.code not in countedPerms %}
+                                    {% set countedPerms = countedPerms|merge([perm.code]) %}
+                                    <div class="flex items-center gap-2 text-muted-foreground">
+                                        <i class="ki-filled ki-check text-emerald-600 text-xs shrink-0"></i>
+                                        <span class="text-foreground text-[11px] font-medium">{{ perm.label }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        {% if countedPerms|length == 0 %}
+                            <span class="text-xs text-muted-foreground italic col-span-2">Aucune permission effective.</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Colonne 2 : Modification du mot de passe (1 colonne sur lg) -->
+    <div class="flex flex-col gap-6">
+        
+        <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden sticky top-24">
+            <div class="px-5 py-4 border-b border-border/60 bg-secondary/10 flex items-center gap-2">
+                <i class="ki-filled ki-key text-primary text-base"></i>
+                <h3 class="text-sm font-bold text-foreground">
+                    Changer mon mot de passe
+                </h3>
+            </div>
+
+            <form method="post" action="{{ path('app_profile') }}" class="p-5 flex flex-col gap-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('profile_change_password') }}">
+
+                <!-- Mot de passe actuel -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="current_password" class="text-xs font-semibold text-foreground">
+                        Mot de passe actuel <span class="text-destructive">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="current_password" 
+                        name="current_password" 
+                        required 
+                        autocomplete="current-password"
+                        placeholder="••••••••" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background focus:border-primary"
+                    />
+                </div>
+
+                <!-- Nouveau mot de passe -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="new_password" class="text-xs font-semibold text-foreground">
+                        Nouveau mot de passe <span class="text-destructive">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="new_password" 
+                        name="new_password" 
+                        required 
+                        minlength="8"
+                        autocomplete="new-password"
+                        placeholder="Au moins 8 caractères" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background focus:border-primary"
+                    />
+                    <span class="text-[10px] text-muted-foreground">
+                        Minimum 8 caractères recommandant majuscules et chiffres.
+                    </span>
+                </div>
+
+                <!-- Confirmation -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="new_password_confirmation" class="text-xs font-semibold text-foreground">
+                        Confirmer le nouveau mot de passe <span class="text-destructive">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="new_password_confirmation" 
+                        name="new_password_confirmation" 
+                        required 
+                        minlength="8"
+                        autocomplete="new-password"
+                        placeholder="Répétez le nouveau mot de passe" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background focus:border-primary"
+                    />
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm w-full py-2.5 inline-flex items-center justify-center gap-2">
+                        <i class="ki-filled ki-shield-tick text-xs"></i>
+                        <span>Enregistrer le mot de passe</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

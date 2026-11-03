@@ -1,0 +1,219 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Gestion des Dossiers Administratifs — MCI e-Circuit{% endblock %}
+{% block page_title %}Gestion des Dossiers{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6">
+
+    <!-- Top Registry Card -->
+    <div class="kt-card kt-card-data overflow-hidden">
+        <div class="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60">
+            <div>
+                <h2 class="text-base font-bold text-foreground">Registre Général des Dossiers Administratifs</h2>
+                <p class="text-xs text-muted-foreground mt-0.5">Suivi de l'instruction, des affectations et de l'état d'avancement des dossiers</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <a href="{{ path('courrier_incoming_new') }}" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3.5 inline-flex items-center gap-2 shadow-xs">
+                    <i class="ki-filled ki-plus text-xs"></i>
+                    <span>Nouveau dossier (via Courrier)</span>
+                </a>
+            </div>
+        <!-- Navigation des Scopes Fonctionnels (Module 8) -->
+        <div class="flex items-center gap-1.5 p-3 bg-secondary/15 border-b border-border/60 overflow-x-auto text-xs">
+            {% set scopes = [
+                {'key': 'all', 'label': 'Tous les dossiers', 'icon': 'ki-folder', 'count': scope_counts.all|default(total_count)},
+                {'key': 'mine', 'label': 'Mes dossiers', 'icon': 'ki-user', 'count': scope_counts.mine|default(0)},
+                {'key': 'received', 'label': 'Dossiers reçus', 'icon': 'ki-inbox', 'count': scope_counts.received|default(0)},
+                {'key': 'to_treat', 'label': 'À traiter', 'icon': 'ki-time', 'count': scope_counts.to_treat|default(0)},
+                {'key': 'in_progress', 'label': 'En cours', 'icon': 'ki-setting-3', 'count': scope_counts.in_progress|default(0)},
+                {'key': 'returned', 'label': 'Retournés', 'icon': 'ki-arrow-left', 'count': scope_counts.returned|default(0)},
+                {'key': 'completed', 'label': 'Terminés', 'icon': 'ki-check-circle', 'count': scope_counts.completed|default(0)}
+            ] %}
+            {% for sc in scopes %}
+                {% set isActive = active_scope == sc.key %}
+                <a href="{{ path('dossier_list', filters|merge({'scope': sc.key, 'page': 1})) }}" 
+                   class="px-3 py-1.5 rounded-lg font-medium whitespace-nowrap flex items-center gap-2 transition-colors {{ isActive ? 'bg-primary text-primary-foreground font-semibold shadow-xs' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/40' }}">
+                    <i class="ki-filled {{ sc.icon }} text-xs"></i>
+                    <span>{{ sc.label }}</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-mono {{ isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-foreground' }}">
+                        {{ sc.count }}
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+
+        <!-- Filtres avancés -->
+        <form method="get" action="{{ path('dossier_list') }}" class="p-5 bg-secondary/10 border-b border-border/40 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <input type="hidden" name="scope" value="{{ active_scope }}">
+            <div class="flex flex-col gap-1 lg:col-span-2">
+                <label for="search" class="text-[11px] font-semibold text-foreground">Recherche</label>
+                <div class="relative">
+                    <i class="ki-filled ki-magnifier text-xs text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input 
+                        type="text" 
+                        id="search" 
+                        name="search" 
+                        value="{{ filters.search|default('') }}" 
+                        placeholder="Référence, objet, expéditeur..." 
+                        class="kt-input pl-8 pr-3 py-1.5 w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="status" class="text-[11px] font-semibold text-foreground">Statut</label>
+                <select id="status" name="status" class="kt-select px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les statuts</option>
+                    {% for st in statuses %}
+                        <option value="{{ st.code }}" {{ filters.status|default('') == st.code ? 'selected' : '' }}>
+                            {{ st.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="priority" class="text-[11px] font-semibold text-foreground">Priorité</label>
+                <select id="priority" name="priority" class="kt-select px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+                    <option value="">Toutes priorités</option>
+                    {% for p in priorities %}
+                        <option value="{{ p.code }}" {{ filters.priority|default('') == p.code ? 'selected' : '' }}>
+                            {{ p.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="structure_id" class="text-[11px] font-semibold text-foreground">Structure détentrice</label>
+                <select id="structure_id" name="structure_id" class="kt-select px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+                    <option value="">Toutes structures</option>
+                    {% for s in structures %}
+                        <option value="{{ s.id }}" {{ filters.structure_id|default('') == s.id ? 'selected' : '' }}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3 grow flex items-center justify-center gap-1.5 text-xs">
+                    <i class="ki-filled ki-filter text-xs"></i>
+                    <span>Filtrer</span>
+                </button>
+                {% if filters.search or filters.status or filters.priority or filters.structure_id %}
+                    <a href="{{ path('dossier_list') }}" class="kt-btn kt-btn-ghost kt-btn-sm py-2 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0" title="Réinitialiser">
+                        <i class="ki-filled ki-cross text-xs"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Tableau des dossiers -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <th class="py-3 px-4">Référence</th>
+                        <th class="py-3 px-4">Date Réception</th>
+                        <th class="py-3 px-4">Objet du Dossier</th>
+                        <th class="py-3 px-4">Statut</th>
+                        <th class="py-3 px-4">Priorité</th>
+                        <th class="py-3 px-4">Structure Détentrice</th>
+                        <th class="py-3 px-4">Responsable</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border/60 text-xs">
+                    {% for case in cases %}
+                        <tr class="hover:bg-secondary/15 transition-colors">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                <a href="{{ path('dossier_show', {id: case.id}) }}" class="font-mono font-bold text-primary hover:underline flex items-center gap-1.5">
+                                    <i class="ki-filled ki-folder text-xs text-amber-500"></i>
+                                    <span>{{ case.reference }}</span>
+                                </a>
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap text-muted-foreground">
+                                {{ case.receivedAt|date('d/m/Y') }}
+                            </td>
+                            <td class="py-3.5 px-4 max-w-sm">
+                                <div class="font-semibold text-foreground truncate" title="{{ case.subject }}">{{ case.subject }}</div>
+                                {% if case.sender %}
+                                    <div class="text-[11px] text-muted-foreground truncate">{{ case.sender.displayName }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                {% set statusClass = case.statusCode in ['CLOSED', 'COMPLETED', 'ARCHIVED'] ? 'bg-secondary text-muted-foreground border-border' : (case.statusCode in ['REGISTERED', 'RECEIVED'] ? 'bg-info/10 text-info border-info/30' : (case.statusCode == 'IN_ANALYSIS' ? 'bg-primary/10 text-primary border-primary/30' : (case.statusCode == 'SIGNED' ? 'bg-success/10 text-success border-success/30' : 'bg-warning/10 text-warning border-warning/30'))) %}
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full border {{ statusClass }}">
+                                        {{ case.statusCode }}
+                                    </span>
+                                    {% if case.isOverdue %}
+                                        <span class="inline-flex items-center px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-destructive/10 text-destructive border border-destructive/30" title="Échéance dépassée">
+                                            <i class="ki-filled ki-warning-2 text-[9px] me-0.5"></i> Retard
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                {% set pCode = case.priorityCode %}
+                                {% set badgeColor = pCode in ['URGENTE', 'URGENT'] ? 'bg-orange-500/10 text-orange-600 border-orange-500/30' : (pCode == 'TRES_URGENTE' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-secondary text-muted-foreground border-border') %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full border {{ badgeColor }}">
+                                    {{ case.priorityCode|default('NORMALE') }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                {% if case.currentStructure %}
+                                    <span class="font-medium text-foreground">{{ case.currentStructure.name }}</span>
+                                {% else %}
+                                    <span class="text-muted-foreground text-[11px]">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                {% if case.currentAssignee %}
+                                    <span class="font-medium text-foreground">{{ case.currentAssignee.fullName }}</span>
+                                {% else %}
+                                    <span class="text-muted-foreground text-[11px]">Non affecté</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                <a href="{{ path('dossier_show', {id: case.id}) }}" class="kt-btn kt-btn-ghost kt-btn-xs text-primary hover:bg-primary/10 inline-flex items-center gap-1 font-semibold">
+                                    <span>Consulter</span>
+                                    <i class="ki-filled ki-arrow-right text-[10px]"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="py-12 text-center text-muted-foreground">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <i class="ki-filled ki-folder-open text-3xl opacity-40"></i>
+                                    <span class="text-sm font-medium">Aucun dossier ne correspond aux critères de sélection.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+            <div class="p-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+                <div>Affichage de {{ cases|length }} sur {{ total_count }} dossiers</div>
+                <div class="flex items-center gap-1">
+                    {% if current_page > 1 %}
+                        <a href="{{ path('dossier_list', filters|merge({'page': current_page - 1})) }}" class="kt-btn kt-btn-outline kt-btn-xs">Précédent</a>
+                    {% endif %}
+                    <span class="px-2">Page {{ current_page }} / {{ total_pages }}</span>
+                    {% if current_page < total_pages %}
+                        <a href="{{ path('dossier_list', filters|merge({'page': current_page + 1})) }}" class="kt-btn kt-btn-outline kt-btn-xs">Suivant</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

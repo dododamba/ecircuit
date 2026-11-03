@@ -1,0 +1,110 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Rôles & Permissions &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Matrice des Habilitations{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_users')},
+    {'label': 'Rôles & Permissions'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de page -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Rôles institutionnels & Droits d'accès
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Cartographie des habilitations définies pour la circulation et le traitement des dossiers du Ministère.
+        </p>
+    </div>
+    {% if is_granted('ROLE_CREATE') or is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_role_new') }}" class="kt-btn kt-btn-primary kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-plus text-xs"></i>
+            <span>Nouveau rôle</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Grille des Rôles Metronic -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for role in roles %}
+        <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden flex flex-col justify-between hover:border-primary/40 transition-colors">
+            
+            <!-- Header du Rôle -->
+            <div class="kt-card-header px-5 py-4 border-b border-border/60 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="ki-filled ki-shield-tick text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-foreground leading-tight">
+                            {{ role.label }}
+                        </h3>
+                        <code class="text-[10px] font-mono text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded">
+                            ROLE_{{ role.code }}
+                        </code>
+                    </div>
+                </div>
+                <span class="kt-badge kt-badge-primary kt-badge-outline kt-badge-sm px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                    {{ role.permissions|length }} perm.
+                </span>
+            </div>
+
+            <!-- Description du rôle -->
+            {% if role.description %}
+                <div class="px-5 pt-3 text-xs text-muted-foreground italic leading-relaxed">
+                    {{ role.description }}
+                </div>
+            {% endif %}
+
+            <!-- Liste des Permissions -->
+            <div class="p-5 grow">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-3">
+                    Permissions accordées :
+                </span>
+                
+                <ul class="flex flex-col gap-2">
+                    {% for permission in role.permissions %}
+                        <li class="flex items-start gap-2 text-xs">
+                            <i class="ki-filled ki-check text-emerald-600 text-sm shrink-0 mt-0.5"></i>
+                            <div class="flex flex-col">
+                                <span class="font-medium text-foreground leading-tight">{{ permission.label }}</span>
+                                <code class="text-[10px] font-mono text-muted-foreground">{{ permission.code }}</code>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li class="text-xs text-muted-foreground italic p-3 text-center bg-secondary/20 rounded-lg">
+                            Aucune permission spécifique attribuée
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Footer du Rôle -->
+            <div class="px-5 py-3 border-t border-border/60 bg-secondary/20 text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Périmètre : Ministère</span>
+                <div class="flex items-center gap-2">
+                    {% if is_granted('ROLE_UPDATE') or is_granted('ROLE_EDIT') or is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('admin_role_edit', {id: role.id}) }}" class="kt-btn kt-btn-ghost kt-btn-sm text-foreground hover:bg-secondary/60 inline-flex items-center gap-1 px-2 py-0.5 text-xs">
+                            <i class="ki-filled ki-notepad-edit text-xs"></i>
+                            <span>Modifier</span>
+                        </a>
+                    {% endif %}
+                    <span class="font-medium text-foreground">Actif</span>
+                </div>
+            </div>
+
+        </div>
+    {% else %}
+        <div class="col-span-full">
+            {% include 'components/ui/empty_state.html.twig' with {
+                'title': 'Aucun rôle configuré',
+                'description': 'La graine initiale n\'a pas encore été exécutée ou aucun rôle n\'est enregistré.'
+            } %}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

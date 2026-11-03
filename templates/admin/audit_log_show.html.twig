@@ -1,0 +1,200 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Audit #{{ log.id }} &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Audit #{{ log.id }}{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_audit_logs')},
+    {'label': 'Audit & Journal de Sécurité', 'url': path('admin_audit_logs')},
+    {'label': 'Audit #' ~ log.id}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de la fiche d'audit -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold tracking-tight text-foreground">
+                Audit #{{ log.id }}
+            </h2>
+            {% if log.result == 'SUCCESS' %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                    SUCCESS
+                </span>
+            {% elseif log.result == 'DENIED' %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                    DENIED
+                </span>
+            {% else %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                    <span class="size-1.5 rounded-full bg-red-500"></span>
+                    FAILURE
+                </span>
+            {% endif %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+                <i class="ki-filled ki-lock-2 text-[11px]"></i>
+                Trace Immuable
+            </span>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+            {{ log.action }} &mdash; {{ log.actionLabel }} &bull; Enregistré le {{ log.createdAt|date('d/m/Y à H:i:s') }}
+        </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <a href="{{ path('admin_audit_logs') }}" class="kt-btn kt-btn-outline kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-left text-xs"></i>
+            <span>Retour au journal d'audit</span>
+        </a>
+    </div>
+</div>
+
+<!-- Grille d'inspection technique -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Colonne 1 : Identité & Acteur -->
+    <div class="kt-card kt-card-info p-5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-3 mb-4 border-b border-border/60 flex items-center gap-2">
+            <i class="ki-filled ki-user-tick text-primary text-sm"></i>
+            <span>Acteur & Horodatage</span>
+        </h3>
+        <dl class="space-y-3 text-xs">
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Identifiant Audit</dt>
+                <dd class="font-mono font-bold text-foreground">#{{ log.id }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Date & Heure</dt>
+                <dd class="font-mono text-foreground">{{ log.createdAt|date('d/m/Y H:i:s') }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Utilisateur</dt>
+                <dd class="text-end font-semibold text-foreground">
+                    {% if log.user %}
+                        {{ log.user.fullName }} (#{{ log.user.id }})
+                        <div class="text-[11px] font-normal text-muted-foreground">{{ log.user.email }}</div>
+                    {% else %}
+                        <span class="italic text-muted-foreground">Anonyme / Système</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Structure</dt>
+                <dd class="text-end text-foreground">
+                    {% if log.user and log.user.organizationUnit %}
+                        <span class="font-semibold">{{ log.user.organizationUnit.code }}</span> &mdash; {{ log.user.organizationUnit.name }}
+                    {% else %}
+                        <span class="text-muted-foreground">&mdash;</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Rôle(s) actif(s)</dt>
+                <dd class="text-end text-foreground">
+                    {% if log.user and log.user.accessRoles|length > 0 %}
+                        {% for role in log.user.accessRoles %}
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-secondary text-[10px] font-semibold">{{ role.code }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted-foreground">&mdash;</span>
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Colonne 2 : Opération & Objet Cible -->
+    <div class="kt-card kt-card-info p-5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-3 mb-4 border-b border-border/60 flex items-center gap-2">
+            <i class="ki-filled ki-abstract-26 text-primary text-sm"></i>
+            <span>Opération & Objet Métier</span>
+        </h3>
+        <dl class="space-y-3 text-xs">
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Code Action</dt>
+                <dd class="font-mono font-bold text-foreground">{{ log.action }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Libellé</dt>
+                <dd class="text-end text-foreground font-medium">{{ log.actionLabel }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Catégorie</dt>
+                <dd class="text-end text-foreground">{{ log.actionCategory }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Objet (Entity Type)</dt>
+                <dd class="font-mono font-semibold text-foreground">{{ log.entityType ?: '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Entity ID</dt>
+                <dd class="font-mono font-bold text-primary">{{ log.entityId ? '#' ~ log.entityId : '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Résultat</dt>
+                <dd class="font-mono font-bold text-foreground">{{ log.result }} ({{ log.success ? 'Succès' : 'Non-succès' }})</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Colonne 3 : Contexte Réseau & HTTP -->
+    <div class="kt-card kt-card-info p-5">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground pb-3 mb-4 border-b border-border/60 flex items-center gap-2">
+            <i class="ki-filled ki-router text-primary text-sm"></i>
+            <span>Contexte Technique & HTTP</span>
+        </h3>
+        <dl class="space-y-3 text-xs">
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Adresse IP</dt>
+                <dd class="font-mono font-semibold text-foreground">{{ log.ipAddress ?: 'CLI / Interne' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Route</dt>
+                <dd class="font-mono text-foreground break-all text-end">{{ log.route ?: '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Méthode HTTP</dt>
+                <dd class="font-mono font-bold text-foreground">{{ log.httpMethod ?: '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Code Statut HTTP</dt>
+                <dd class="font-mono text-foreground">{{ log.statusCode ?: '—' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+                <dt class="text-muted-foreground font-medium">Request ID</dt>
+                <dd class="font-mono text-[11px] text-muted-foreground break-all text-end">{{ log.requestId ?: '—' }}</dd>
+            </div>
+            <div class="pt-1 border-t border-border/40">
+                <dt class="text-muted-foreground font-medium mb-1">User-Agent</dt>
+                <dd class="font-mono text-[11px] text-muted-foreground break-all bg-secondary/40 p-2 rounded border border-border/50">
+                    {{ log.userAgent ?: 'Non applicable (CLI / Système)' }}
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Metadata / Contexte JSON assaini -->
+<div class="kt-card kt-card-info p-5">
+    <div class="flex items-center justify-between pb-3 mb-4 border-b border-border/60">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <i class="ki-filled ki-code text-primary text-sm"></i>
+            <span>Metadata & Contexte d'exécution (JSON Assaini)</span>
+        </h3>
+        <span class="text-[11px] text-muted-foreground">
+            Secrets, mots de passe et jetons exclus automatiquement par <code class="font-mono">AuditLogger</code>
+        </span>
+    </div>
+
+    {% if log.metadata is not empty %}
+        <pre class="bg-slate-950 text-slate-100 p-4 rounded-lg text-xs font-mono overflow-x-auto leading-relaxed">{{ log.metadata|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre>
+    {% else %}
+        <div class="text-xs text-muted-foreground italic py-4 text-center">
+            Aucune métadonnée additionnelle enregistrée pour cet événement.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

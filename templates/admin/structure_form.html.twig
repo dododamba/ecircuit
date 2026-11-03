@@ -1,0 +1,173 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ edit ? 'Modifier la structure' : 'Créer une structure' }} &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}{{ edit ? 'Édition Structure' : 'Nouvelle Structure' }}{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Organisation', 'url': path('admin_structures')},
+    {'label': 'Structures', 'url': path('admin_structures')},
+    {'label': edit ? 'Modifier ' ~ unit.name : 'Nouvelle structure'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            {{ edit ? 'Modification de la structure : ' ~ unit.name : 'Création d\'une structure administrative' }}
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            {{ edit ? 'Mettez à jour le nom, le type institutionnel ou le rattachement hiérarchique.' : 'Ajoutez un nouveau service, direction ou entité dans l\'organigramme ministériel.' }}
+        </p>
+    </div>
+    <a href="{{ path('admin_structures') }}" class="kt-btn kt-btn-outline kt-btn-sm inline-flex items-center gap-1.5">
+        <i class="ki-filled ki-arrow-left text-xs"></i>
+        <span>Retour à l'organigramme</span>
+    </a>
+</div>
+
+<!-- Formulaire Metronic -->
+<div class="max-w-3xl mx-auto">
+    <form method="post" action="{{ edit ? path('admin_structure_edit', {id: unit.id}) : path('admin_structure_new') }}" class="flex flex-col gap-6">
+        <input type="hidden" name="_token" value="{{ edit ? csrf_token('admin_structure_edit_' ~ unit.id) : csrf_token('admin_structure_new') }}">
+
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-bank"></i>
+                    </div>
+                    <h3 class="kt-card-title">Informations administratives</h3>
+                </div>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <!-- Code -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="code" class="text-xs font-semibold text-foreground">
+                        Code d'identification unique <span class="text-destructive">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="code" 
+                        name="code" 
+                        required 
+                        {{ edit ? 'readonly disabled' : '' }} 
+                        value="{{ edit ? unit.code : '' }}" 
+                        class="kt-input px-3 py-2 w-full text-xs font-mono uppercase rounded-lg border border-border {{ edit ? 'bg-secondary/40 text-muted-foreground' : 'bg-background' }}" 
+                        placeholder="ex: SERVICE_IMPORT_EXPORT"
+                    >
+                    {% if edit %}
+                        <span class="text-[10px] text-muted-foreground">Le code technique ne peut pas être modifié.</span>
+                    {% endif %}
+                </div>
+
+                <!-- Type -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="type" class="text-xs font-semibold text-foreground">
+                        Type institutionnel <span class="text-destructive">*</span>
+                    </label>
+                    <select id="type" name="type" required class="kt-select px-3 py-2 w-full text-xs rounded-lg border border-border bg-background">
+                        {% for typeCase in types %}
+                            <option value="{{ typeCase.value }}" {{ edit and unit.type.value == typeCase.value ? 'selected' : '' }}>
+                                {{ typeCase.label }} ({{ typeCase.value }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nom -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2">
+                    <label for="name" class="text-xs font-semibold text-foreground">
+                        Dénomination complète de la structure <span class="text-destructive">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        required 
+                        value="{{ edit ? unit.name : '' }}" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" 
+                        placeholder="ex: Service des Importations et Exportations"
+                    >
+                </div>
+
+                <!-- Structure parente -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2">
+                    <label for="parent_id" class="text-xs font-semibold text-foreground">
+                        Structure hiérarchique de rattachement (Parente)
+                    </label>
+                    <select id="parent_id" name="parent_id" class="kt-select px-3 py-2 w-full text-xs rounded-lg border border-border bg-background">
+                        <option value="0">-- Aucune (Structure racine / Ministère) --</option>
+                        {% for struct in structures %}
+                            {% if not edit or struct.id != unit.id %}
+                                <option value="{{ struct.id }}" {{ edit and unit.parent and unit.parent.id == struct.id ? 'selected' : '' }}>
+                                    {{ struct.hierarchyPath }} [{{ struct.type.label }}]
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <span class="text-[10px] text-muted-foreground">
+                        Exemple : un Service doit être rattaché à une Direction ; une Direction à une Direction Générale.
+                    </span>
+                </div>
+
+                <!-- Description -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2">
+                    <label for="description" class="text-xs font-semibold text-foreground">
+                        Attributions & Missions
+                    </label>
+                    <textarea 
+                        id="description" 
+                        name="description" 
+                        rows="3" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" 
+                        placeholder="Décrivez les compétences et responsabilités administratives..."
+                    >{{ edit ? unit.description : '' }}</textarea>
+                </div>
+
+                <!-- Ordre d'affichage -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="display_order" class="text-xs font-semibold text-foreground">
+                        Ordre d'affichage protocolaire
+                    </label>
+                    <input 
+                        type="number" 
+                        id="display_order" 
+                        name="display_order" 
+                        min="0" 
+                        value="{{ edit ? unit.displayOrder : 0 }}" 
+                        class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                {% if edit %}
+                    <!-- Statut -->
+                    <div class="flex flex-col gap-1.5">
+                        <label for="active" class="text-xs font-semibold text-foreground">
+                            Statut de la structure
+                        </label>
+                        <select id="active" name="active" class="kt-select px-3 py-2 w-full text-xs rounded-lg border border-border bg-background">
+                            <option value="1" {{ unit.active ? 'selected' : '' }}>Active (Opérationnelle)</option>
+                            <option value="0" {{ not unit.active ? 'selected' : '' }}>Désactivée (Fermée / En sommeil)</option>
+                        </select>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-12 border-t border-border/40 mt-2">
+            <a href="{{ path('admin_structures') }}" class="kt-btn kt-btn-outline kt-btn-md px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                Annuler et retourner
+            </a>
+            <button type="submit" class="kt-btn kt-btn-primary kt-btn-md px-7 py-2.5 shadow-sm font-semibold inline-flex items-center gap-2 text-xs">
+                <i class="ki-filled ki-check text-xs"></i>
+                <span>{{ edit ? 'Enregistrer les modifications' : 'Créer la structure' }}</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

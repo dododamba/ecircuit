@@ -1,0 +1,16 @@
+{% if breadcrumbs is defined and breadcrumbs|length > 0 %}
+<nav class="flex items-center gap-1.5 text-xs font-normal text-muted-foreground mb-4" aria-label="Fil d'Ariane">
+    <a href="{{ path('app_dashboard') }}" class="hover:text-primary transition-colors flex items-center gap-1">
+        <i class="ki-filled ki-home text-sm"></i>
+        <span>Accueil</span>
+    </a>
+    {% for item in breadcrumbs %}
+        <i class="ki-filled ki-right text-[10px] text-muted-foreground"></i>
+        {% if item.url is defined and item.url and not loop.last %}
+            <a href="{{ item.url }}" class="hover:text-primary transition-colors">{{ item.label }}</a>
+        {% else %}
+            <span class="text-foreground font-medium">{{ item.label }}</span>
+        {% endif %}
+    {% endfor %}
+</nav>
+{% endif %}

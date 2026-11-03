@@ -1,0 +1,281 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Courrier {{ correspondence.reference }} — MCI e-Circuit{% endblock %}
+{% block page_title %}Détail Courrier : {{ correspondence.reference }}{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6 max-w-6xl mx-auto">
+
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background border border-border p-4 rounded-xl shadow-xs">
+        <div class="flex items-center gap-3">
+            <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <i class="ki-filled ki-barcode text-2xl"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-mono font-bold text-foreground">{{ correspondence.reference }}</h2>
+                    {% if correspondence.priority %}
+                        {% set pCode = correspondence.priority.code %}
+                        {% set badgeColor = pCode in ['URGENTE', 'URGENT'] ? 'bg-orange-500/10 text-orange-600 border-orange-500/30' : (pCode == 'TRES_URGENTE' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-secondary text-muted-foreground border-border') %}
+                        <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full border {{ badgeColor }}">
+                            {{ correspondence.priority.label }}
+                        </span>
+                    {% endif %}
+                    <span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-secondary text-foreground">
+                        {{ correspondence.entryChannel.label }}
+                    </span>
+                </div>
+                <div class="text-xs text-muted-foreground mt-0.5">
+                    Enregistré le {{ correspondence.registeredAt ? correspondence.registeredAt|date('d/m/Y à H:i') : correspondence.createdAt|date('d/m/Y à H:i') }}
+                    {% if correspondence.registeredBy %}
+                        par <span class="font-medium text-foreground">{{ correspondence.registeredBy.fullName }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ path('courrier_routing_slip', {id: correspondence.id}) }}" target="_blank" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 inline-flex items-center gap-1.5 shadow-xs">
+                <i class="ki-filled ki-printer text-xs"></i>
+                <span>Fiche suiveuse</span>
+            </a>
+            <a href="{{ path('courrier_receipt', {id: correspondence.id}) }}" target="_blank" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 inline-flex items-center gap-1.5 shadow-xs">
+                <i class="ki-filled ki-badge text-xs"></i>
+                <span>Récépissé usager</span>
+            </a>
+            <a href="{{ path('courrier_incoming_list') }}" class="kt-btn kt-btn-ghost kt-btn-sm py-2 px-3 text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-arrow-left text-xs"></i>
+                <span>Registre</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Grid Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left 2 Cols: Objet, Métadonnées & Document -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            
+            <!-- Objet & Observations -->
+            <div class="kt-card kt-card-info p-6 flex flex-col gap-4">
+                <div>
+                    <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Objet officiel de la correspondance</span>
+                    <h3 class="text-base font-bold text-foreground mt-1 leading-snug">{{ correspondence.subject }}</h3>
+                </div>
+
+                {% if correspondence.observations %}
+                    <div class="p-3.5 rounded-lg bg-secondary/30 border border-border/60">
+                        <span class="text-xs font-semibold text-foreground">Observations / Mentions particulières :</span>
+                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">{{ correspondence.observations }}</p>
+                    </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border/60 text-xs">
+                    <div>
+                        <span class="text-muted-foreground">Nature du document :</span>
+                        <span class="font-semibold text-foreground ml-1">{{ correspondence.documentType ? correspondence.documentType.label : 'Non précisé' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-muted-foreground">Type de flux :</span>
+                        <span class="font-semibold text-foreground ml-1">{{ correspondence.mailType ? correspondence.mailType.label : 'Courrier entrant' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-muted-foreground">Date effective de réception :</span>
+                        <span class="font-semibold text-foreground ml-1">{{ correspondence.receivedAt|date('d/m/Y à H:i') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-muted-foreground">Statut de traitement :</span>
+                        <span class="font-semibold text-foreground ml-1">{{ correspondence.status.label }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document numérisé principal -->
+            <div class="kt-card kt-card-info p-6 flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-border/60 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="ki-filled ki-document text-primary text-base"></i>
+                        <h4 class="text-sm font-bold text-foreground">Document Scanné / Pièce Principale</h4>
+                    </div>
+                    {% if correspondence.mainDocument %}
+                        <span class="text-[11px] text-muted-foreground">
+                            {{ (correspondence.mainDocument.size / 1024)|round }} Ko — {{ correspondence.mainDocument.mimeType }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if correspondence.mainDocument %}
+                    <div class="p-4 rounded-xl border border-border bg-secondary/15 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <i class="ki-filled ki-file-sheet text-lg"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold text-foreground truncate">{{ correspondence.mainDocument.originalName }}</div>
+                                <div class="text-[11px] text-muted-foreground">
+                                    Numérisé le {{ correspondence.mainDocument.uploadedAt|date('d/m/Y à H:i') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ path('document_download', {id: correspondence.mainDocument.id}) }}" target="_blank" class="kt-btn kt-btn-primary kt-btn-sm py-1.5 px-3 text-xs inline-flex items-center gap-1.5">
+                                <i class="ki-filled ki-eye text-xs"></i>
+                                <span>Visualiser</span>
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-6 rounded-xl border border-dashed border-border text-center text-muted-foreground text-xs">
+                        <i class="ki-filled ki-file text-2xl opacity-40 mb-1"></i>
+                        <div>Aucun fichier scanné n'a été rattaché lors de l'enregistrement.</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Dossier Administratif Associé (DossierCase) -->
+            {% if case %}
+                <div class="kt-card kt-card-info p-6 flex flex-col gap-4">
+                    <div class="flex items-center justify-between border-b border-border/60 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="ki-filled ki-folder text-warning text-base"></i>
+                            <h4 class="text-sm font-bold text-foreground">Dossier Administratif Associé</h4>
+                        </div>
+                        <span class="font-mono text-xs font-bold text-primary">{{ case.reference }}</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <span class="text-muted-foreground">Statut du dossier :</span>
+                            <span class="font-semibold text-foreground ml-1">{{ case.statusCode }}</span>
+                        </div>
+                        <div>
+                            <span class="text-muted-foreground">Structure détentrice :</span>
+                            <span class="font-semibold text-foreground ml-1">
+                                {{ case.currentStructure ? case.currentStructure.name : 'Non affectée' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-muted-foreground">Agent responsable :</span>
+                            <span class="font-semibold text-foreground ml-1">
+                                {{ case.currentAssignee ? case.currentAssignee.fullName : 'Non assigné' }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-muted-foreground">Nombre d'événements :</span>
+                            <span class="font-semibold text-foreground ml-1">{{ case.events|length }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Timeline succincte -->
+                    <div class="pt-3 border-t border-border/60">
+                        <span class="text-[11px] font-semibold text-muted-foreground uppercase">Derniers événements du dossier</span>
+                        <div class="flex flex-col gap-2 mt-2">
+                            {% for ev in case.events|slice(0, 3) %}
+                                <div class="flex items-start gap-2.5 text-xs">
+                                    <div class="size-2 rounded-full bg-primary mt-1.5 shrink-0"></div>
+                                    <div class="flex flex-col">
+                                        <div class="font-medium text-foreground">{{ ev.label }}</div>
+                                        <div class="text-[11px] text-muted-foreground">
+                                            {{ ev.occurredAt|date('d/m/Y H:i') }}
+                                            {% if ev.actor %} • par {{ ev.actor.fullName }}{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Col: Expéditeur & Traçabilité -->
+        <div class="flex flex-col gap-6">
+
+            <!-- Fiche Expéditeur -->
+            <div class="kt-card kt-card-info p-6 flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-border/60 pb-3">
+                    <i class="ki-filled ki-user text-primary text-base"></i>
+                    <h4 class="text-sm font-bold text-foreground">Identité de l'Expéditeur</h4>
+                </div>
+
+                {% if correspondence.sender %}
+                    {% set s = correspondence.sender %}
+                    <div class="flex flex-col gap-3 text-xs">
+                        <div>
+                            <span class="text-[11px] text-muted-foreground uppercase">Qualité</span>
+                            <div class="font-semibold text-foreground mt-0.5">{{ s.type.label }}</div>
+                        </div>
+
+                        <div>
+                            <span class="text-[11px] text-muted-foreground uppercase">Nom / Contact</span>
+                            <div class="font-bold text-foreground mt-0.5">{{ s.name }}</div>
+                        </div>
+
+                        {% if s.organisation %}
+                            <div>
+                                <span class="text-[11px] text-muted-foreground uppercase">Organisation</span>
+                                <div class="font-medium text-foreground mt-0.5">{{ s.organisation }}</div>
+                            </div>
+                        {% endif %}
+
+                        {% if s.phone %}
+                            <div>
+                                <span class="text-[11px] text-muted-foreground uppercase">Téléphone</span>
+                                <div class="font-mono text-foreground mt-0.5">{{ s.phone }}</div>
+                            </div>
+                        {% endif %}
+
+                        {% if s.email %}
+                            <div>
+                                <span class="text-[11px] text-muted-foreground uppercase">Courriel</span>
+                                <div class="text-primary mt-0.5">{{ s.email }}</div>
+                            </div>
+                        {% endif %}
+
+                        {% if s.address %}
+                            <div>
+                                <span class="text-[11px] text-muted-foreground uppercase">Adresse</span>
+                                <div class="text-muted-foreground mt-0.5 leading-relaxed">{{ s.address }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-xs text-muted-foreground">Aucune information expéditeur enregistrée.</div>
+                {% endif %}
+            </div>
+
+            <!-- Fiche de sécurité & Audit -->
+            <div class="kt-card kt-card-info p-6 flex flex-col gap-3 text-xs">
+                <div class="flex items-center gap-2 border-b border-border/60 pb-3">
+                    <i class="ki-filled ki-shield-check text-success text-base"></i>
+                    <h4 class="text-sm font-bold text-foreground">Traçabilité & Intégrité</h4>
+                </div>
+
+                <div class="flex flex-col gap-2 text-muted-foreground">
+                    <div>
+                        <span class="font-semibold text-foreground">Référence immuable :</span>
+                        <div class="font-mono text-primary font-bold">{{ correspondence.reference }}</div>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-foreground">Horodatage d'enregistrement :</span>
+                        <div>{{ correspondence.createdAt|date('d/m/Y à H:i:s') }}</div>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-foreground">Intégrité des données :</span>
+                        <div class="text-success flex items-center gap-1 mt-0.5">
+                            <i class="ki-filled ki-check text-xs"></i>
+                            <span>Verrouillée et certifiée conforme</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

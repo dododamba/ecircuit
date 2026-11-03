@@ -1,0 +1,38 @@
+{# 
+  Modale UI Réutilisable Metronic KTUI
+  Paramètres:
+  - id: identifiant unique de la modale
+  - title: titre de la modale
+  - content: contenu HTML du corps
+  - footer: actions du pied de page
+  - size: 'sm' | 'md' | 'lg' | 'xl' (défaut 'md')
+#}
+{% set maxWidthClass = size|default('md') == 'sm' ? 'max-w-[400px]' : (size|default('md') == 'lg' ? 'max-w-[700px]' : (size|default('md') == 'xl' ? 'max-w-[900px]' : 'max-w-[550px]')) %}
+
+<div class="kt-modal hidden" data-kt-modal="true" id="{{ id }}">
+    <div class="kt-modal-backdrop fixed inset-0 bg-black/40 z-40 transition-opacity"></div>
+    <div class="kt-modal-dialog fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+        <div class="kt-modal-content w-full {{ maxWidthClass }} bg-background rounded-xl border border-border shadow-2xl overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+            
+            <div class="kt-modal-header flex items-center justify-between px-6 py-4 border-b border-border">
+                <h3 class="kt-modal-title text-base font-semibold text-foreground">
+                    {{ title }}
+                </h3>
+                <button type="button" class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm text-muted-foreground hover:text-foreground" data-kt-modal-dismiss="true" aria-label="Fermer">
+                    <i class="ki-filled ki-cross text-sm"></i>
+                </button>
+            </div>
+
+            <div class="kt-modal-body p-6 text-sm text-foreground">
+                {{ content|default('')|raw }}
+            </div>
+
+            {% if footer is defined and footer %}
+                <div class="kt-modal-footer flex items-center justify-end gap-2 px-6 py-3.5 bg-secondary/20 border-t border-border">
+                    {{ footer|raw }}
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>

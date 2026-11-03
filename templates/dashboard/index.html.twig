@@ -1,0 +1,632 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Espace de pilotage &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block container_class %}kt-container-fluid max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8{% endblock %}
+
+{% block body %}
+<!-- Fil d'Ariane discret -->
+<nav class="flex items-center gap-1.5 text-xs text-muted-foreground mb-3" aria-label="Fil d'Ariane">
+    <a href="{{ path('app_dashboard') }}" class="hover:text-primary transition-colors flex items-center gap-1 font-medium">
+        <i class="ki-filled ki-home text-xs"></i>
+        <span>Accueil</span>
+    </a>
+    <i class="ki-filled ki-right text-[10px] text-muted-foreground"></i>
+    <span class="text-foreground font-semibold">Tableau de bord</span>
+</nav>
+
+<!-- En-tête du Tableau de Bord & Actions Rapides -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 mb-6 border-b border-border/50">
+    <div class="flex flex-col gap-1 min-w-0">
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <h2 class="text-xl lg:text-2xl font-bold tracking-tight text-foreground">
+                Espace de pilotage
+            </h2>
+            {% if is_cabinet %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <i class="ki-filled ki-crown text-xs me-1"></i> Espace Cabinet & Ministre (S4.07)
+                </span>
+            {% elseif is_sg %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+                    <i class="ki-filled ki-compass text-xs me-1"></i> Espace Secrétariat Général (S4.08)
+                </span>
+            {% elseif is_direction %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    <i class="ki-filled ki-bank text-xs me-1"></i> {{ user_structure ? user_structure.name : 'Direction Opérationnelle' }} (S4.09)
+                </span>
+            {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                    <i class="ki-filled ki-shield-tick text-xs me-1"></i> Supervision Centrale & Administration
+                </span>
+            {% endif %}
+        </div>
+        <p class="text-xs text-muted-foreground">
+            Vue synthétique de la circulation des courriers et du traitement des dossiers administratifs.
+            {% if is_direction and user_structure %}
+                <span class="font-medium text-foreground">&bull; Périmètre opérationnel : {{ user_structure.name }}.</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Actions principales alignées -->
+    <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+        {% if is_granted('COURRIER_CREATE') or is_granted('ROLE_ADMINISTRATEUR') %}
+            <a href="{{ path('courrier_incoming_new') }}" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3.5 inline-flex items-center gap-2 shadow-xs text-xs font-semibold">
+                <i class="ki-filled ki-plus text-xs"></i>
+                <span>Enregistrer un courrier</span>
+            </a>
+            <a href="{{ path('courrier_outgoing_new') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 inline-flex items-center gap-2 text-xs font-medium text-foreground hover:bg-secondary/40">
+                <i class="ki-filled ki-send text-xs text-muted-foreground"></i>
+                <span>Courrier sortant</span>
+            </a>
+        {% endif %}
+        <a href="{{ path('search_index') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 inline-flex items-center gap-2 text-xs font-medium text-foreground hover:bg-secondary/40">
+            <i class="ki-filled ki-magnifier text-xs text-muted-foreground"></i>
+            <span>Recherche avancée</span>
+        </a>
+    </div>
+</div>
+
+<!-- Grille des 4 Indicateurs Opérationnels Clés (KPI) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 mb-8">
+    
+    <!-- KPI 1 : À traiter (Priorité opérationnelle) -->
+    <div class="kt-card kt-card-kpi p-5 hover:border-primary/40 transition-all flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">À traiter</span>
+                <div class="size-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-time text-base"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-foreground tracking-tight mb-1">
+                {{ dossiers_to_treat }}
+            </div>
+            <p class="text-xs text-muted-foreground leading-relaxed">
+                Dossiers nécessitant une intervention
+            </p>
+        </div>
+        <div class="pt-3 mt-3 border-t border-border/40 flex items-center justify-end">
+            <a href="{{ path('dossier_list', {scope: 'to_treat'}) }}" class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                <span>Consulter</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI 2 : En instruction (Activité en cours) -->
+    <div class="kt-card kt-card-kpi p-5 hover:border-primary/40 transition-all flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">En instruction</span>
+                <div class="size-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-route text-base"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-foreground tracking-tight mb-1">
+                {{ dossiers_in_progress }}
+            </div>
+            <p class="text-xs text-muted-foreground leading-relaxed">
+                En cours d'analyse ou de visa technique
+            </p>
+        </div>
+        <div class="pt-3 mt-3 border-t border-border/40 flex items-center justify-end">
+            <a href="{{ path('dossier_list', {scope: 'in_progress'}) }}" class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                <span>Consulter</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI 3 : Urgents / En retard (Signal d'attention) -->
+    {% set isAlert = dossiers_urgent > 0 or dossiers_overdue > 0 %}
+    <div class="kt-card kt-card-kpi {{ isAlert ? 'bg-red-50/20 border-red-200 hover:border-red-300' : 'hover:border-destructive/40' }} p-5 transition-all flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider {{ isAlert ? 'text-destructive' : 'text-muted-foreground' }}">
+                    Urgents / En retard
+                </span>
+                <div class="size-8 rounded-lg {{ isAlert ? 'bg-red-100 text-destructive' : 'bg-secondary text-muted-foreground' }} flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-information-2 text-base"></i>
+                </div>
+            </div>
+            <div class="flex items-baseline gap-2 mb-1">
+                <span class="text-3xl font-extrabold {{ isAlert ? 'text-destructive' : 'text-foreground' }} tracking-tight">
+                    {{ dossiers_urgent }}
+                </span>
+                {% if dossiers_overdue > 0 %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive text-destructive-foreground">
+                        {{ dossiers_overdue }} en retard
+                    </span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-muted-foreground leading-relaxed">
+                Dossiers prioritaires ou échéance échue
+            </p>
+        </div>
+        <div class="pt-3 mt-3 border-t border-border/40 flex items-center justify-end">
+            <a href="{{ path('dossier_list', {priority: 'URGENTE'}) }}" class="text-xs font-semibold {{ isAlert ? 'text-destructive' : 'text-muted-foreground' }} hover:underline inline-flex items-center gap-1">
+                <span>Filtrer</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI 4 : Traités / Clôturés (Suivi de l'activité réalisée) -->
+    <div class="kt-card kt-card-kpi p-5 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Traités / Clôturés</span>
+                <div class="size-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-check-circle text-base"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-foreground tracking-tight mb-1">
+                {{ dossiers_completed }}
+            </div>
+            <p class="text-xs text-muted-foreground leading-relaxed">
+                Circuits administratifs finalisés
+            </p>
+        </div>
+        <div class="pt-3 mt-3 border-t border-border/40 flex items-center justify-end">
+            <a href="{{ path('dossier_list', {scope: 'completed'}) }}" class="text-xs font-semibold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                <span>Archives</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+{# SECTION S4.07 : PILOTAGE CABINET ET DÉCISIONS MINISTÉRIELLES #}
+{% if is_cabinet or is_admin %}
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-crown text-indigo-600 text-sm"></i>
+                <span>Pilotage Cabinet & Décisions Ministérielles (S4.07)</span>
+            </h3>
+            <span class="text-xs text-muted-foreground">Signatures et sorties de circuit</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <!-- Dossiers à signer par le Ministre -->
+            <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden">
+                <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2">
+                        <i class="ki-filled ki-signature text-indigo-600 text-sm"></i>
+                        <h4 class="text-xs font-bold text-foreground uppercase tracking-wider">Dossiers à signer par le Ministre</h4>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ tasks_to_sign|length > 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-secondary text-muted-foreground' }}">
+                        {{ tasks_to_sign|length }} en attente
+                    </span>
+                </div>
+                <div class="divide-y divide-border/40">
+                    {% if tasks_to_sign|length > 0 %}
+                        {% for t in tasks_to_sign %}
+                            {% set c = t.instance.case %}
+                            <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors">
+                                <div class="flex flex-col gap-0.5 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <a href="{{ path('dossier_show', {id: c.id}) }}" class="font-bold font-mono text-xs text-primary hover:underline">
+                                            {{ c.reference }}
+                                        </a>
+                                        <span class="text-[10px] text-muted-foreground">Étape : {{ t.step.name }}</span>
+                                    </div>
+                                    <span class="text-xs text-foreground font-medium truncate max-w-[320px]">{{ c.subject }}</span>
+                                    <span class="text-[10px] text-muted-foreground">Reçu le {{ c.receivedAt|date('d/m/Y') }} &bull; {{ c.sender ? c.sender.name : 'Émetteur non précisé' }}</span>
+                                </div>
+                                <a href="{{ path('dossier_show', {id: c.id}) }}" class="kt-btn kt-btn-xs kt-btn-primary shrink-0 py-1.5 px-3 text-xs font-semibold">
+                                    Signer
+                                </a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="py-6 px-4 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1">
+                            <i class="ki-filled ki-check-circle text-emerald-500 text-base mb-0.5"></i>
+                            <span>Aucun dossier en attente de traitement.</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Dossiers à libérer du Cabinet -->
+            <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden">
+                <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2">
+                        <i class="ki-filled ki-exit-up text-sky-600 text-sm"></i>
+                        <h4 class="text-xs font-bold text-foreground uppercase tracking-wider">Dossiers à libérer du Cabinet</h4>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ tasks_to_release|length > 0 ? 'bg-sky-100 text-sky-800' : 'bg-secondary text-muted-foreground' }}">
+                        {{ tasks_to_release|length }} en attente
+                    </span>
+                </div>
+                <div class="divide-y divide-border/40">
+                    {% if tasks_to_release|length > 0 %}
+                        {% for t in tasks_to_release %}
+                            {% set c = t.instance.case %}
+                            <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors">
+                                <div class="flex flex-col gap-0.5 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <a href="{{ path('dossier_show', {id: c.id}) }}" class="font-bold font-mono text-xs text-primary hover:underline">
+                                            {{ c.reference }}
+                                        </a>
+                                        <span class="text-[10px] text-muted-foreground">Sortie Cabinet</span>
+                                    </div>
+                                    <span class="text-xs text-foreground font-medium truncate max-w-[320px]">{{ c.subject }}</span>
+                                    <span class="text-[10px] text-muted-foreground">Reçu le {{ c.receivedAt|date('d/m/Y') }}</span>
+                                </div>
+                                <a href="{{ path('dossier_show', {id: c.id}) }}" class="kt-btn kt-btn-xs kt-btn-outline shrink-0 py-1.5 px-3 text-xs font-medium">
+                                    Libérer
+                                </a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="py-6 px-4 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1">
+                            <i class="ki-filled ki-check-circle text-emerald-500 text-base mb-0.5"></i>
+                            <span>Aucun dossier en attente de traitement.</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{# SECTION S4.08 : PILOTAGE TRANSVERSAL DU SECRÉTARIAT GÉNÉRAL #}
+{% if is_sg or is_admin %}
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-compass text-teal-600 text-sm"></i>
+                <span>Pilotage Transversal du Secrétariat Général (S4.08)</span>
+            </h3>
+            <span class="text-xs text-muted-foreground">Orientation ministérielle & répartition sectorielle</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Dossiers à orienter par le SG -->
+            <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden lg:col-span-4 self-start">
+                <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2">
+                        <i class="ki-filled ki-route text-teal-600 text-sm"></i>
+                        <h4 class="text-xs font-bold text-foreground uppercase tracking-wider">Dossiers à orienter</h4>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ tasks_to_orient|length > 0 ? 'bg-teal-100 text-teal-800' : 'bg-secondary text-muted-foreground' }}">
+                        {{ tasks_to_orient|length }}
+                    </span>
+                </div>
+                <div class="divide-y divide-border/40">
+                    {% if tasks_to_orient|length > 0 %}
+                        {% for t in tasks_to_orient %}
+                            {% set c = t.instance.case %}
+                            <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors">
+                                <div class="flex flex-col gap-0.5 min-w-0">
+                                    <a href="{{ path('dossier_show', {id: c.id}) }}" class="font-bold font-mono text-xs text-primary hover:underline">
+                                        {{ c.reference }}
+                                    </a>
+                                    <span class="text-xs text-foreground font-medium truncate max-w-[220px]">{{ c.subject }}</span>
+                                    <span class="text-[10px] text-muted-foreground">Arrivé le {{ c.receivedAt|date('d/m/Y') }}</span>
+                                </div>
+                                <a href="{{ path('dossier_show', {id: c.id}) }}" class="kt-btn kt-btn-xs kt-btn-outline shrink-0 py-1.5 px-3 text-xs font-medium">
+                                    Orienter
+                                </a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="py-6 px-4 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-1">
+                            <i class="ki-filled ki-check-circle text-emerald-500 text-base mb-0.5"></i>
+                            <span>Aucun dossier en attente de traitement.</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Répartition par Direction Générale / Direction -->
+            <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden lg:col-span-8">
+                <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2">
+                        <i class="ki-filled ki-chart-pie-simple text-primary text-sm"></i>
+                        <h4 class="text-xs font-bold text-foreground uppercase tracking-wider">Répartition par Direction Générale / Direction</h4>
+                    </div>
+                    <span class="text-xs text-muted-foreground">Vue transversale</span>
+                </div>
+                <div class="p-0 overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-border/60 text-muted-foreground font-bold text-[11px] uppercase bg-slate-50/50">
+                                <th class="py-2.5 px-4">Structure</th>
+                                <th class="py-2.5 px-3 text-center">Total</th>
+                                <th class="py-2.5 px-3 text-center">En cours</th>
+                                <th class="py-2.5 px-3 text-center">En retard</th>
+                                <th class="py-2.5 px-3 text-center">Traités</th>
+                                <th class="py-2.5 px-4 text-end">Charge</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/40">
+                            {% for row in dg_stats %}
+                                <tr class="hover:bg-secondary/20 transition-colors">
+                                    <td class="py-2.5 px-4 font-medium text-foreground">
+                                        <div class="flex items-center gap-2">
+                                            <i class="ki-filled ki-bank text-primary/60 text-xs shrink-0"></i>
+                                            <span class="leading-tight">{{ row.unit.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center font-bold text-foreground">{{ row.total }}</td>
+                                    <td class="py-2.5 px-3 text-center text-sky-700 font-medium">{{ row.in_progress }}</td>
+                                    <td class="py-2.5 px-3 text-center {{ row.overdue > 0 ? 'text-destructive font-bold' : 'text-muted-foreground' }}">
+                                        {{ row.overdue }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-center text-emerald-700 font-medium">{{ row.completed }}</td>
+                                    <td class="py-2.5 px-4 text-end">
+                                        <div class="inline-flex items-center gap-2 justify-end">
+                                            {% set pct = dossiers_total > 0 ? ((row.total / dossiers_total) * 100)|round : 0 %}
+                                            <div class="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                                <div class="h-full bg-primary rounded-full transition-all" style="width: {{ pct }}%"></div>
+                                            </div>
+                                            <span class="text-[10px] text-muted-foreground w-7 text-end font-mono">{{ pct }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="p-6 text-center text-xs text-muted-foreground">Aucune structure configurée.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{# SECTION S4.10 : INDICATEURS DE PERFORMANCE MINISTÉRIELLE & DÉLAIS RÉELS #}
+<div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden mb-8">
+    <div class="px-5 py-4 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
+        <div>
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-chart-line-up text-primary text-sm"></i>
+                <span>Indicateurs de performance ministérielle & Délais réels (S4.10)</span>
+            </h3>
+            <p class="text-[11px] text-muted-foreground mt-0.5">
+                Calculs automatisés basés sur l'historique effectif du Workflow Engine
+            </p>
+        </div>
+        <!-- Indicateurs synthétiques compacts -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200">
+                <i class="ki-filled ki-verify text-xs text-emerald-600"></i>
+                <span class="text-xs text-muted-foreground">Taux dans les délais :</span>
+                <span class="text-xs font-bold text-emerald-700">{{ on_time_rate }}%</span>
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-50/80 border border-sky-200">
+                <i class="ki-filled ki-calendar-tick text-xs text-sky-600"></i>
+                <span class="text-xs text-muted-foreground">Délai moyen global :</span>
+                <span class="text-xs font-bold text-sky-700">{{ avg_resolution_days }} jours</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Temps moyen d'instruction par étape -->
+        <div class="lg:col-span-7">
+            <h4 class="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <i class="ki-filled ki-time text-muted-foreground text-xs"></i>
+                <span>Temps moyen d'instruction par étape administrative</span>
+            </h4>
+            <div class="space-y-3.5">
+                {% if step_durations|length > 0 %}
+                    {% for sd in step_durations %}
+                        <div>
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="font-medium text-foreground">{{ sd.name }}</span>
+                                <span class="text-xs text-muted-foreground">
+                                    <strong class="text-foreground">{{ sd.avg_days }} j</strong> ({{ sd.avg_hours }}h) &bull; {{ sd.count }} passage(s)
+                                </span>
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                                {% set barWidth = min(100, max(8, (sd.avg_hours / 72) * 100)) %}
+                                <div class="h-full bg-primary/80 rounded-full transition-all" style="width: {{ barWidth }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="py-8 px-4 text-center text-xs text-muted-foreground bg-slate-50/50 rounded-lg border border-border/40">
+                        <span>Les indicateurs de durée seront disponibles lorsque l'historique de traitement sera suffisamment renseigné.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Flux d'entrée institutionnels -->
+        <div class="lg:col-span-5 border-t lg:border-t-0 lg:border-s border-border/60 lg:ps-6 pt-5 lg:pt-0">
+            <h4 class="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
+                Flux d'entrée institutionnels
+            </h4>
+            <p class="text-xs text-muted-foreground mb-4">
+                Volume total : <strong class="text-foreground">{{ courriers_total }} courrier{{ courriers_total > 1 ? 's' : '' }}</strong>
+            </p>
+            
+            {% if courriers_total > 0 %}
+                <div class="space-y-2.5 mb-4">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-indigo-700 flex items-center gap-1.5 font-medium">
+                            <span class="size-2 rounded-full bg-indigo-600"></span>
+                            Cabinet Ministériel
+                        </span>
+                        <span class="font-semibold text-foreground">{{ courriers_cabinet }} ({{ cabinet_pct }}%)</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-teal-700 flex items-center gap-1.5 font-medium">
+                            <span class="size-2 rounded-full bg-teal-600"></span>
+                            Secrétariat Général
+                        </span>
+                        <span class="font-semibold text-foreground">{{ courriers_sg }} ({{ sg_pct }}%)</span>
+                    </div>
+                </div>
+                <div class="h-2.5 w-full rounded-full bg-slate-100 flex overflow-hidden shadow-inner">
+                    <div class="h-full bg-indigo-600 transition-all" style="width: {{ cabinet_pct }}%" title="Cabinet : {{ cabinet_pct }}%"></div>
+                    <div class="h-full bg-teal-600 transition-all" style="width: {{ sg_pct }}%" title="Secrétariat Général : {{ sg_pct }}%"></div>
+                </div>
+            {% else %}
+                <div class="py-6 px-4 text-center text-xs text-muted-foreground bg-slate-50/50 rounded-lg border border-border/40 mb-3">
+                    <span>Aucun courrier enregistré pour le calcul de répartition des flux.</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-slate-100"></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Section Double Table : Derniers Dossiers & Derniers Courriers -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    
+    <!-- Tableau 1 : Derniers dossiers actifs -->
+    <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <i class="ki-filled ki-folder text-primary text-sm"></i>
+                <h3 class="text-xs font-bold text-foreground uppercase tracking-wider">Derniers dossiers actifs</h3>
+            </div>
+            <a href="{{ path('dossier_list') }}" class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                <span>Voir tous les dossiers</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="divide-y divide-border/40">
+            {% if recent_cases|length > 0 %}
+                {% for c in recent_cases %}
+                    <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors">
+                        <div class="flex flex-col gap-0.5 overflow-hidden min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <a href="{{ path('dossier_show', {id: c.id}) }}" class="font-bold font-mono text-xs text-primary hover:underline">
+                                    {{ c.reference }}
+                                </a>
+                                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold {{ c.entryChannel.value == 'CABINET' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700' }}">
+                                    {{ c.entryChannel.label }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-foreground font-medium truncate max-w-[320px]">
+                                {{ c.subject }}
+                            </span>
+                            <span class="text-[10px] text-muted-foreground">
+                                {{ c.currentStructure ? c.currentStructure.name : 'Structure non définie' }} &bull; {{ c.updatedAt|date('d/m/Y H:i') }}
+                            </span>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary text-foreground shrink-0 border border-border/60">
+                            {{ c.statusCode }}
+                        </span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="py-8 px-4 text-center text-xs text-muted-foreground">
+                    Aucun dossier enregistré dans ce périmètre.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tableau 2 : Derniers courriers enregistrés -->
+    <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-border/60 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <i class="ki-filled ki-sms text-primary text-sm"></i>
+                <h3 class="text-xs font-bold text-foreground uppercase tracking-wider">Derniers courriers reçus</h3>
+            </div>
+            <a href="{{ path('courrier_incoming_list') }}" class="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                <span>Voir le registre</span>
+                <i class="ki-filled ki-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="divide-y divide-border/40">
+            {% if recent_correspondences|length > 0 %}
+                {% for corr in recent_correspondences %}
+                    <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-secondary/20 transition-colors">
+                        <div class="flex flex-col gap-0.5 overflow-hidden min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <a href="{{ path('courrier_show', {id: corr.id}) }}" class="font-bold font-mono text-xs text-primary hover:underline">
+                                    {{ corr.reference }}
+                                </a>
+                                <span class="text-[10px] text-muted-foreground">
+                                    Arrivé le {{ corr.receivedAt|date('d/m/Y') }}
+                                </span>
+                            </div>
+                            <span class="text-xs text-foreground font-medium truncate max-w-[320px]">
+                                {{ corr.subject }}
+                            </span>
+                            <span class="text-[10px] text-muted-foreground truncate max-w-[320px]">
+                                Exp : {{ corr.sender ? corr.sender.name : 'Émetteur non précisé' }}
+                            </span>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary text-foreground shrink-0 border border-border/60">
+                            {{ corr.status.label }}
+                        </span>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="py-8 px-4 text-center text-xs text-muted-foreground">
+                    Aucun courrier entrant dans le registre.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Section Socle Technique & Paramètres Système (Si habilité) -->
+{% if is_granted('ROLE_ADMINISTRATEUR') or is_granted('USER_VIEW') %}
+    <div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl p-5 mb-8">
+        <div class="flex items-center justify-between mb-3.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <i class="ki-filled ki-setting-2 text-sm text-primary"></i>
+                <span>Socle technique & Paramètres système</span>
+            </h3>
+            <span class="text-[10px] font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded">
+                Administration
+            </span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
+            <a href="{{ path('admin_users') }}" class="p-3.5 rounded-lg bg-slate-50/70 border border-border/60 flex items-center justify-between hover:bg-secondary/40 transition-colors">
+                <div>
+                    <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Comptes</span>
+                    <p class="text-lg font-bold text-foreground mt-0.5">{{ users }}</p>
+                </div>
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-people text-sm"></i>
+                </div>
+            </a>
+            <a href="{{ path('admin_roles') }}" class="p-3.5 rounded-lg bg-slate-50/70 border border-border/60 flex items-center justify-between hover:bg-secondary/40 transition-colors">
+                <div>
+                    <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Rôles</span>
+                    <p class="text-lg font-bold text-foreground mt-0.5">{{ roles }}</p>
+                </div>
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-shield-tick text-sm"></i>
+                </div>
+            </a>
+            <a href="{{ path('admin_structures') }}" class="p-3.5 rounded-lg bg-slate-50/70 border border-border/60 flex items-center justify-between hover:bg-secondary/40 transition-colors">
+                <div>
+                    <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Structures</span>
+                    <p class="text-lg font-bold text-foreground mt-0.5">{{ structures }}</p>
+                </div>
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-bank text-sm"></i>
+                </div>
+            </a>
+            <a href="{{ path('admin_references') }}" class="p-3.5 rounded-lg bg-slate-50/70 border border-border/60 flex items-center justify-between hover:bg-secondary/40 transition-colors">
+                <div>
+                    <span class="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Référentiels</span>
+                    <p class="text-lg font-bold text-foreground mt-0.5">{{ references }}</p>
+                </div>
+                <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <i class="ki-filled ki-route text-sm"></i>
+                </div>
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

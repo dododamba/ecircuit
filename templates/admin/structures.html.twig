@@ -1,0 +1,133 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Structures & Organisation &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Organisation Administrative{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Organisation', 'url': path('admin_structures')},
+    {'label': 'Arborescence des structures'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de page -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Arborescence administrative du Ministère
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Hiérarchie officielle définissant les périmètres de responsabilité et de circulation des dossiers.
+        </p>
+    </div>
+    {% if is_granted('STRUCTURE_CREATE') or is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_structure_new') }}" class="kt-btn kt-btn-primary kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-plus text-xs"></i>
+            <span>Nouvelle structure</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Macro pour l'affichage récursif de la hiérarchie -->
+{% macro renderStructureBranch(unit) %}
+    <li class="relative">
+        <div class="flex items-center gap-3 p-3.5 rounded-xl border border-border/60 bg-background hover:bg-secondary/30 hover:border-primary/40 transition-all shadow-2xs mb-2">
+            
+            <!-- Icône selon le type -->
+            {% set typeIcon = unit.type.value == 'MINISTERE' ? 'crown' : (unit.type.value == 'CABINET' ? 'bank' : (unit.type.value == 'SECRETARIAT_GENERAL' ? 'badge' : (unit.type.value == 'DIRECTION_GENERALE' ? 'abstract-26' : (unit.type.value == 'DIRECTION' ? 'folder' : 'element-11')))) %}
+            <div class="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <i class="ki-filled ki-{{ typeIcon }} text-base"></i>
+            </div>
+
+            <!-- Nom et Code -->
+            <div class="flex flex-col grow">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-foreground leading-tight">{{ unit.name }}</span>
+                    <code class="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                        {{ unit.code }}
+                    </code>
+                    {% if unit.children|length > 0 %}
+                        <span class="text-[10px] text-muted-foreground bg-secondary/80 px-1.5 py-0.2 rounded font-medium">
+                            {{ unit.children|length }} sous-entité(s)
+                        </span>
+                    {% endif %}
+                </div>
+                {% if unit.description %}
+                    <span class="text-[11px] text-muted-foreground truncate max-w-xl mt-0.5">{{ unit.description }}</span>
+                {% endif %}
+            </div>
+
+            <!-- Badge Type -->
+            <span class="kt-badge kt-badge-outline kt-badge-sm px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-secondary/60 text-secondary-foreground shrink-0">
+                {{ unit.type.label|default(unit.type.value) }}
+            </span>
+
+            <!-- Statut -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                {% if unit.active %}
+                    <span class="kt-badge kt-badge-success kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                        <span>Active</span>
+                    </span>
+                {% else %}
+                    <span class="kt-badge kt-badge-destructive kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                        <span class="size-1.5 rounded-full bg-red-500"></span>
+                        <span>Inactive</span>
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-1 shrink-0 ps-2 border-s border-border/40">
+                {% if is_granted('STRUCTURE_UPDATE') or is_granted('ROLE_ADMIN') %}
+                    <a href="{{ path('admin_structure_edit', {id: unit.id}) }}" class="kt-btn kt-btn-ghost kt-btn-sm text-foreground hover:bg-secondary/60 inline-flex items-center gap-1 px-2 py-1 text-xs" title="Modifier la structure">
+                        <i class="ki-filled ki-notepad-edit text-xs"></i>
+                        <span>Modifier</span>
+                    </a>
+
+                    <form method="post" action="{{ path('admin_structure_toggle', {id: unit.id}) }}" class="inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('structure_toggle_' ~ unit.id) }}">
+                        <button type="submit" class="kt-btn kt-btn-ghost kt-btn-sm {{ unit.active ? 'text-destructive hover:bg-destructive/10' : 'text-emerald-600 hover:bg-emerald-50' }} px-2 py-1 text-xs" title="{{ unit.active ? 'Désactiver' : 'Activer' }}">
+                            <i class="ki-filled ki-{{ unit.active ? 'cross-circle' : 'check-circle' }} text-xs"></i>
+                            <span>{{ unit.active ? 'Désactiver' : 'Activer' }}</span>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Sous-structures -->
+        {% if unit.children|length > 0 %}
+            <ul class="ps-6 sm:ps-8 ms-4 border-s-2 border-border/50 flex flex-col gap-1 my-1">
+                {% for child in unit.children %}
+                    {{ _self.renderStructureBranch(child) }}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+{% endmacro %}
+
+<div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl p-6">
+    <div class="flex items-center justify-between pb-4 border-b border-border/60 mb-6">
+        <div class="flex items-center gap-2 text-xs font-semibold text-foreground uppercase tracking-wider">
+            <i class="ki-filled ki-category text-primary text-base"></i>
+            <span>Schéma organisationnel</span>
+        </div>
+        <span class="text-xs text-muted-foreground">
+            {{ structures|length }} structure(s) racine(s)
+        </span>
+    </div>
+
+    <ul class="flex flex-col gap-2">
+        {% for structure in structures %}
+            {{ _self.renderStructureBranch(structure) }}
+        {% else %}
+            {% include 'components/ui/empty_state.html.twig' with {
+                'title': 'Aucune structure administrative',
+                'description': 'L\'organigramme ministériel n\'a pas encore été configuré.'
+            } %}
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche Suiveuse — {{ correspondence.reference }} — MCI</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            color: #111827;
+            margin: 0;
+            padding: 20px;
+            background: #fff;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .header-left {
+            text-align: left;
+            width: 55%;
+        }
+        .header-right {
+            text-align: right;
+            width: 40%;
+        }
+        .republic {
+            font-weight: bold;
+            font-size: 11pt;
+            letter-spacing: 0.5px;
+        }
+        .motto {
+            font-size: 8pt;
+            font-style: italic;
+            margin-top: 2px;
+        }
+        .ministry {
+            font-weight: 800;
+            font-size: 11pt;
+            color: #034426;
+            margin-top: 5px;
+            line-height: 1.2;
+        }
+        .slip-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .ref-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #0f172a;
+            padding: 10px 15px;
+            border-radius: 8px;
+            background: #f8fafc;
+            margin-bottom: 15px;
+        }
+        .ref-number {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .ref-badge {
+            font-size: 10pt;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+        }
+        .urgent {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 10pt;
+        }
+        .meta-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            background: #ffffff;
+        }
+        .meta-card-title {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .meta-value {
+            font-weight: 600;
+        }
+        .routing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 9.5pt;
+        }
+        .routing-table th {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 8pt;
+            text-transform: uppercase;
+            border: 1px solid #0f172a;
+        }
+        .routing-table td {
+            border: 1px solid #94a3b8;
+            padding: 14px 6px;
+            vertical-align: top;
+            height: 38px;
+        }
+        .footer-notice {
+            margin-top: 25px;
+            border-top: 1px dashed #94a3b8;
+            padding-top: 10px;
+            font-size: 8pt;
+            color: #64748b;
+            text-align: center;
+        }
+        .no-print {
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-print {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 10pt;
+        }
+        .btn-close {
+            background: #475569;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 10pt;
+            margin-left: 10px;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <div>
+            <strong>MCI e-Circuit</strong> — Fiche Suiveuse Officielle (Format Imprimable A4)
+        </div>
+        <div>
+            <button class="btn-print" onclick="window.print()">Imprimer la fiche suiveuse</button>
+            <button class="btn-close" onclick="window.close()">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Official Letterhead -->
+    <div class="header">
+        <div class="header-left">
+            <div class="republic">RÉPUBLIQUE DU TCHAD</div>
+            <div class="motto">Unité — Travail — Progrès</div>
+            <div class="ministry">MINISTÈRE DU COMMERCE ET DE L'INDUSTRIE</div>
+            <div style="font-size: 8.5pt; color: #475569; margin-top: 3px;">
+                Canal d'arrivée : <strong>{{ correspondence.entryChannel.label }}</strong>
+            </div>
+        </div>
+        <div class="header-right">
+            <div style="font-size: 9pt; color: #475569;">Plateforme MCI e-Circuit</div>
+            <div style="font-size: 9pt; font-weight: bold; margin-top: 3px;">
+                Date d'enregistrement : {{ correspondence.registeredAt ? correspondence.registeredAt|date('d/m/Y H:i') : correspondence.createdAt|date('d/m/Y H:i') }}
+            </div>
+            <div style="font-size: 8.5pt; color: #64748b; margin-top: 3px;">
+                Agent : {{ correspondence.registeredBy ? correspondence.registeredBy.fullName : 'Service Courrier' }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Titre officiel -->
+    <div class="slip-title">
+        FICHE SUIVEUSE DE COURRIER ENTRANT
+    </div>
+
+    <!-- Encadré Référence Officielle -->
+    <div class="ref-box">
+        <div>
+            <div style="font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold;">Numéro de référence officiel</div>
+            <div class="ref-number">{{ correspondence.reference }}</div>
+        </div>
+        <div>
+            {% if correspondence.priority %}
+                {% set isUrgent = correspondence.priority.code in ['URGENTE', 'TRES_URGENTE', 'URGENT'] %}
+                <span class="ref-badge {{ isUrgent ? 'urgent' : '' }}">
+                    PRIORITÉ : {{ correspondence.priority.label|upper }}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Grille des métadonnées -->
+    <div class="meta-grid">
+        <div class="meta-card">
+            <div class="meta-card-title">Expéditeur / Signataire</div>
+            <div class="meta-value">{{ correspondence.sender ? correspondence.sender.name : 'Non précisé' }}</div>
+            {% if correspondence.sender and correspondence.sender.organisation %}
+                <div style="font-size: 9pt; color: #475569; margin-top: 2px;">{{ correspondence.sender.organisation }}</div>
+            {% endif %}
+            {% if correspondence.sender and correspondence.sender.phone %}
+                <div style="font-size: 8.5pt; color: #64748b; margin-top: 2px;">Tél : {{ correspondence.sender.phone }}</div>
+            {% endif %}
+        </div>
+
+        <div class="meta-card">
+            <div class="meta-card-title">Caractéristiques du document</div>
+            <div class="meta-value">Nature : {{ correspondence.documentType ? correspondence.documentType.label : 'Courrier' }}</div>
+            <div style="font-size: 9pt; color: #475569; margin-top: 2px;">
+                Date effective réception : {{ correspondence.receivedAt|date('d/m/Y à H:i') }}
+            </div>
+            {% if correspondence.mainDocument %}
+                <div style="font-size: 8.5pt; color: #0284c7; margin-top: 2px;">
+                    Pièce jointe : {{ correspondence.mainDocument.originalName }} ({{ (correspondence.mainDocument.size / 1024)|round }} Ko)
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Objet -->
+    <div class="meta-card" style="margin-bottom: 15px;">
+        <div class="meta-card-title">Objet du courrier</div>
+        <div class="meta-value" style="font-size: 11pt; line-height: 1.4;">{{ correspondence.subject }}</div>
+        {% if correspondence.observations %}
+            <div style="margin-top: 6px; font-size: 9pt; color: #475569; border-top: 1px dotted #cbd5e1; padding-top: 4px;">
+                <em>Observations : {{ correspondence.observations }}</em>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Grille de circulation et de visas administratifs -->
+    <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px;">
+        Circuit de traitement & Instructions administratives
+    </div>
+
+    <table class="routing-table">
+        <thead>
+            <tr>
+                <th style="width: 5%; text-align: center;">N°</th>
+                <th style="width: 14%;">Date / Heure</th>
+                <th style="width: 20%;">Direction / Service</th>
+                <th style="width: 45%;">Instructions / Annotations</th>
+                <th style="width: 16%;">Visa & Signature</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">1</td>
+                <td>{{ correspondence.receivedAt|date('d/m/Y') }}</td>
+                <td>{{ correspondence.entryChannel.label }}</td>
+                <td>Enregistrement initial et affectation pour instruction.</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">2</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">3</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">4</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">5</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold;">6</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer-notice">
+        Fiche suiveuse générée par MCI e-Circuit • Document officiel à joindre impérativement au dossier physique • Toute transmission doit être émargée sur cette fiche et validée sur la plateforme.
+    </div>
+
+</body>
+</html>

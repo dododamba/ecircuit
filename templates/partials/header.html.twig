@@ -1,0 +1,153 @@
+<!-- Header Metronic MCI e-Circuit -->
+<header class="kt-header fixed top-0 z-10 start-0 end-0 flex items-stretch shrink-0 bg-background/95 backdrop-blur-sm border-b border-border/60 h-[70px]" id="header">
+    <div class="kt-container-fixed flex items-center justify-between gap-4 w-full">
+        
+        <!-- Mobile Drawer Toggle & Logo -->
+        <div class="flex items-center gap-3 lg:hidden shrink-0">
+            <button class="kt-btn kt-btn-icon kt-btn-ghost size-9" data-kt-drawer-toggle="#sidebar" aria-label="Ouvrir le menu">
+                <i class="ki-filled ki-menu text-xl"></i>
+            </button>
+            <a class="flex items-center gap-2" href="{{ path('app_dashboard') }}">
+                <img class="size-8 object-contain" src="{{ asset('assets/images/mci-logo.webp') }}" alt="MCI e-Circuit"/>
+                <span class="text-sm font-bold text-foreground">MCI <span class="text-primary">e-Circuit</span></span>
+            </a>
+        </div>
+
+        <!-- Desktop Title & Institutional Context -->
+        <div class="hidden lg:flex items-center gap-3 my-auto min-w-0">
+            <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs uppercase font-extrabold tracking-wider text-primary truncate">
+                        Ministère du Commerce et de l’Industrie
+                    </span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
+                        RÉPUBLIQUE DU TCHAD
+                    </span>
+                </div>
+                <h1 class="text-sm lg:text-base font-bold text-foreground leading-snug truncate">
+                    {{ header_title|default('MCI e-Circuit') }}
+                </h1>
+            </div>
+        </div>
+
+        <!-- Topbar Right Actions -->
+        <div class="flex items-center gap-2 lg:gap-3 ms-auto shrink-0">
+            
+            <!-- Quick Search Bar (recherche de dossier / courrier) -->
+            <form action="{{ path('search_quick') }}" method="GET" class="hidden md:flex items-center m-0">
+                <div class="relative flex items-center">
+                    <i class="ki-filled ki-magnifier absolute start-3 text-muted-foreground text-sm"></i>
+                    <input type="text" name="q" placeholder="Rechercher une référence..." class="kt-input kt-input-sm ps-9 pe-4 py-1.5 w-44 lg:w-60 xl:w-72 rounded-lg bg-secondary/40 text-xs border border-border/60 focus:bg-background focus:w-80 transition-all" id="quick_reference_search" autocomplete="off"/>
+                </div>
+            </form>
+
+            <!-- Notifications Button & Drawer Toggle -->
+            <div class="relative">
+                <button class="kt-btn kt-btn-ghost kt-btn-icon size-9 rounded-lg hover:bg-secondary/60 relative" data-kt-drawer-toggle="#notifications_drawer" title="Notifications" id="notification_bell_btn">
+                    <i class="ki-filled ki-notification-status text-lg text-muted-foreground"></i>
+                    <span class="size-2 rounded-full bg-primary absolute top-2 end-2 hidden" id="notification_badge_dot"></span>
+                    <span class="hidden absolute -top-1 -end-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-destructive text-destructive-foreground" id="notification_badge_count"></span>
+                </button>
+            </div>
+
+            <!-- Separator -->
+            <div class="h-6 w-px bg-border/60 mx-1"></div>
+
+            <!-- User Profile Dropdown -->
+            <div class="kt-menu" data-kt-menu="true">
+                <div class="kt-menu-item" data-kt-menu-item-offset="0,10px" data-kt-menu-item-placement="bottom-end" data-kt-menu-item-toggle="dropdown" data-kt-menu-item-trigger="click">
+                    <button class="flex items-center gap-2.5 p-1 rounded-lg hover:bg-secondary/60 transition-colors" type="button">
+                        <div class="size-9 rounded-full bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center shrink-0 uppercase shadow-xs">
+                            {{ app.user ? (app.user.firstName|first ~ app.user.lastName|first) : 'MC' }}
+                        </div>
+                        <div class="hidden xl:flex flex-col text-start leading-tight">
+                            <span class="text-xs font-semibold text-foreground truncate max-w-[130px]">
+                                {{ app.user ? app.user.fullName : 'Agent' }}
+                            </span>
+                            <span class="text-[10px] text-muted-foreground truncate max-w-[130px]">
+                                {{ app.user and app.user.accessRoles|length > 0 ? app.user.accessRoles[0].label : 'Utilisateur' }}
+                            </span>
+                        </div>
+                        <i class="ki-filled ki-down text-xs text-muted-foreground hidden sm:inline"></i>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div class="kt-menu-dropdown kt-menu-default w-[260px] p-3 shadow-lg rounded-xl border border-border bg-background" data-kt-menu-dismiss="true">
+                        <div class="flex items-center gap-3 p-2 pb-3 border-b border-border/60">
+                            <div class="size-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center shrink-0 uppercase">
+                                {{ app.user ? (app.user.firstName|first ~ app.user.lastName|first) : 'MC' }}
+                            </div>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="text-sm font-semibold text-foreground truncate">
+                                    {{ app.user ? app.user.fullName : 'Utilisateur' }}
+                                </span>
+                                <span class="text-xs text-muted-foreground truncate">
+                                    {{ app.user ? app.user.email : 'agent@mci.gov.td' }}
+                                </span>
+                                <span class="text-[10px] font-medium text-primary truncate mt-0.5">
+                                    {{ app.user and app.user.organizationUnit ? app.user.organizationUnit.name : 'Structure non définie' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-1 py-2">
+                            <a class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground rounded-lg hover:bg-secondary/60 transition-colors" href="{{ path('app_profile') }}">
+                                <i class="ki-filled ki-user text-sm text-muted-foreground"></i>
+                                <span>Mon Profil & Sécurité</span>
+                            </a>
+                            <a class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground rounded-lg hover:bg-secondary/60 transition-colors" href="{{ path('app_dashboard') }}">
+                                <i class="ki-filled ki-setting-3 text-sm text-muted-foreground"></i>
+                                <span>Préférences</span>
+                            </a>
+                        </div>
+
+                        <div class="pt-2 border-t border-border/60">
+                            <form method="post" action="{{ path('app_logout') }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('logout') }}">
+                                <button type="submit" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
+                                    <i class="ki-filled ki-exit-right text-sm"></i>
+                                    <span>Déconnexion</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</header>
+
+<!-- Notifications Drawer Lateral -->
+<div class="hidden kt-drawer kt-drawer-end card flex flex-col max-w-[90%] w-[380px] top-4 bottom-4 end-4 rounded-xl border border-border shadow-xl bg-background" data-kt-drawer="true" data-kt-drawer-container="body" id="notifications_drawer">
+    <div class="flex items-center justify-between p-4 border-b border-border" id="notifications_header">
+        <div class="flex items-center gap-2">
+            <i class="ki-filled ki-notification-status text-primary text-lg"></i>
+            <span class="text-sm font-semibold text-foreground">Centre de notifications</span>
+        </div>
+        <div class="flex items-center gap-1">
+            <button class="kt-btn kt-btn-xs kt-btn-ghost text-muted-foreground hover:text-primary hidden" id="btn_mark_all_read" title="Tout marquer comme lu">
+                <i class="ki-filled ki-double-check text-xs me-1"></i>
+                <span class="text-[10px]">Tout lire</span>
+            </button>
+            <button class="kt-btn kt-btn-sm kt-btn-icon kt-btn-ghost" data-kt-drawer-dismiss="true">
+                <i class="ki-filled ki-cross text-xs"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Liste dynamique des notifications -->
+    <div class="flex flex-col grow overflow-y-auto divide-y divide-border/40" id="notifications_list_container"></div>
+
+    <!-- État vide (affiché si aucune notification) -->
+    <div class="flex flex-col p-6 items-center justify-center text-center gap-2 grow" id="notifications_empty_state">
+        <div class="size-12 rounded-full bg-secondary/80 flex items-center justify-center text-muted-foreground mb-2">
+            <i class="ki-filled ki-notification-bing text-2xl"></i>
+        </div>
+        <h4 class="text-sm font-semibold text-foreground">Aucune nouvelle alerte</h4>
+        <p class="text-xs text-muted-foreground max-w-[240px]">
+            Toutes les notifications de circulation et de traitement de vos dossiers apparaîtront ici.
+        </p>
+    </div>
+</div>

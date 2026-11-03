@@ -1,0 +1,38 @@
+{# 
+  Bouton UI Réutilisable Metronic
+  Paramètres:
+  - label: string
+  - url: string (si lien)
+  - variant: 'primary' | 'secondary' | 'outline' | 'destructive' | 'ghost' (défaut 'primary')
+  - icon: string (code keenicon, optionnel)
+  - icon_position: 'start' | 'end' (défaut 'start')
+  - size: 'sm' | 'md' | 'lg' (défaut 'md')
+  - type: 'button' | 'submit' (si bouton standard)
+  - class: classes CSS additionnelles
+  - id: identifiant DOM
+#}
+{% set btnVariant = variant|default('primary') %}
+{% set variantClass = btnVariant == 'primary' ? 'kt-btn-primary' : (btnVariant == 'secondary' ? 'kt-btn-secondary' : (btnVariant == 'destructive' or btnVariant == 'danger' ? 'kt-btn-destructive' : (btnVariant == 'outline' ? 'kt-btn-outline' : 'kt-btn-ghost'))) %}
+{% set sizeClass = size|default('md') == 'sm' ? 'kt-btn-sm text-xs' : (size|default('md') == 'lg' ? 'kt-btn-lg' : '') %}
+
+{% if url is defined and url %}
+    <a href="{{ url }}" id="{{ id|default('') }}" class="kt-btn {{ variantClass }} {{ sizeClass }} inline-flex items-center gap-2 font-medium rounded-lg transition-colors {{ class|default('') }}" {% if attributes is defined %}{{ attributes|raw }}{% endif %}>
+        {% if icon is defined and icon and (icon_position|default('start') == 'start') %}
+            <i class="ki-filled ki-{{ icon }} text-sm"></i>
+        {% endif %}
+        <span>{{ label }}</span>
+        {% if icon is defined and icon and (icon_position|default('start') == 'end') %}
+            <i class="ki-filled ki-{{ icon }} text-sm"></i>
+        {% endif %}
+    </a>
+{% else %}
+    <button type="{{ type|default('button') }}" id="{{ id|default('') }}" class="kt-btn {{ variantClass }} {{ sizeClass }} inline-flex items-center gap-2 font-medium rounded-lg transition-colors {{ class|default('') }}" {% if attributes is defined %}{{ attributes|raw }}{% endif %}>
+        {% if icon is defined and icon and (icon_position|default('start') == 'start') %}
+            <i class="ki-filled ki-{{ icon }} text-sm"></i>
+        {% endif %}
+        <span>{{ label }}</span>
+        {% if icon is defined and icon and (icon_position|default('start') == 'end') %}
+            <i class="ki-filled ki-{{ icon }} text-sm"></i>
+        {% endif %}
+    </button>
+{% endif %}

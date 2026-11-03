@@ -1,0 +1,136 @@
+<!-- Scripts Metronic Core & KTUI -->
+<script src="{{ asset('assets/metronic/js/core.bundle.js') }}"></script>
+<script src="{{ asset('assets/metronic/vendors/ktui/ktui.min.js') }}"></script>
+<script src="{{ asset('assets/metronic/js/layouts/demo1.js') }}"></script>
+
+<!-- Initialisations et helpers interactifs UI -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation automatique des tooltips et popovers KTUI si disponibles
+        if (typeof KTDom !== 'undefined') {
+            KTDom.ready(function() {
+                if (typeof KTMenu !== 'undefined') {
+                    KTMenu.init();
+                }
+            });
+        }
+
+        // Fermeture automatique des alertes flash après 5 secondes si configuré
+        setTimeout(function() {
+            const autoDismissAlerts = document.querySelectorAll('.mci-auto-dismiss');
+            autoDismissAlerts.forEach(function(alert) {
+                alert.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-10px)';
+                setTimeout(function() {
+                    alert.remove();
+                }, 400);
+            });
+        }, 5000);
+
+        // Gestionnaire dynamique du Centre de notifications
+        const bellBtn = document.getElementById('notification_bell_btn');
+        const badgeDot = document.getElementById('notification_badge_dot');
+        const badgeCount = document.getElementById('notification_badge_count');
+        const listContainer = document.getElementById('notifications_list_container');
+        const emptyState = document.getElementById('notifications_empty_state');
+        const btnMarkAll = document.getElementById('btn_mark_all_read');
+
+        function fetchNotifications() {
+            fetch('/api/notifications')
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    if (!data) return;
+                    updateNotificationUI(data.unread_count, data.notifications);
+                })
+                .catch(err => console.debug('Erreur notifications:', err));
+        }
+
+        function updateNotificationUI(unreadCount, items) {
+            if (badgeDot && badgeCount) {
+                if (unreadCount > 0) {
+                    badgeDot.classList.remove('hidden');
+                    badgeCount.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    badgeCount.classList.remove('hidden');
+                    if (btnMarkAll) btnMarkAll.classList.remove('hidden');
+                } else {
+                    badgeDot.classList.add('hidden');
+                    badgeCount.classList.add('hidden');
+                    if (btnMarkAll) btnMarkAll.classList.add('hidden');
+                }
+            }
+
+            if (!listContainer || !emptyState) return;
+
+            if (!items || items.length === 0) {
+                listContainer.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            let html = '';
+            items.forEach(item => {
+                const unreadBg = !item.is_read ? 'bg-primary/[0.04]' : '';
+                const unreadDot = !item.is_read ? '<span class="size-2 rounded-full bg-primary shrink-0"></span>' : '';
+                const linkHref = item.link ? item.link : '#';
+                const iconClass = item.icon || 'ki-notification-bing';
+
+                html += `
+                    <div class="p-3.5 flex items-start gap-3 hover:bg-secondary/40 transition-colors ${unreadBg} cursor-pointer notification-item" data-id="${item.id}" data-link="${item.link || ''}">
+                        <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="ki-filled ${iconClass} text-sm"></i>
+                        </div>
+                        <div class="flex flex-col gap-0.5 grow min-w-0">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-xs font-semibold text-foreground truncate">${escapeHtml(item.title)}</span>
+                                ${unreadDot}
+                            </div>
+                            <p class="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">${escapeHtml(item.message)}</p>
+                            <span class="text-[10px] text-muted-foreground/80 mt-1">${item.time_ago}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+
+            // Événement clic sur une notification
+            listContainer.querySelectorAll('.notification-item').forEach(el => {
+                el.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const link = this.getAttribute('data-link');
+
+                    fetch('/api/notifications/' + id + '/read', { method: 'POST' })
+                        .finally(() => {
+                            if (link && link !== '#' && link !== '') {
+                                window.location.href = link;
+                            } else {
+                                fetchNotifications();
+                            }
+                        });
+                });
+            });
+        }
+
+        if (btnMarkAll) {
+            btnMarkAll.addEventListener('click', function(e) {
+                e.preventDefault();
+                fetch('/api/notifications/read-all', { method: 'POST' })
+                    .then(() => fetchNotifications());
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Chargement initial des notifications si l'utilisateur est connecté
+        if (bellBtn) {
+            fetchNotifications();
+            bellBtn.addEventListener('click', fetchNotifications);
+        }
+    });
+</script>

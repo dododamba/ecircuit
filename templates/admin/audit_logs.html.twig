@@ -1,0 +1,385 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Audit & Journal de Sécurité &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Audit & Journal de Sécurité{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_audit_logs')},
+    {'label': 'Audit & Journal de Sécurité'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de page + Bandeau d'immutabilité (READ-ONLY) -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <div class="flex items-center gap-2.5">
+            <h2 class="text-xl font-bold tracking-tight text-foreground">
+                Journal d'audit et de sécurité
+            </h2>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+                <i class="ki-filled ki-lock-2 text-[11px]"></i>
+                Lecture seule &bull; Immuable
+            </span>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">
+            Traçabilité technique et d'investigation séparée de la timeline métier des dossiers. Aucune entrée ne peut être modifiée ni supprimée.
+        </p>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/40 border border-border/70 rounded-lg px-3 py-2">
+        <i class="ki-filled ki-shield-tick text-emerald-600 text-sm"></i>
+        <span>Total filtré : <strong class="text-foreground">{{ total_count }}</strong> trace{{ total_count > 1 ? 's' : '' }}</span>
+    </div>
+</div>
+
+<!-- Indicateurs Synthétiques (KPIs) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="kt-card kt-card-kpi p-4 flex flex-row items-center justify-between">
+        <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total des traces</span>
+            <div class="text-2xl font-extrabold text-foreground mt-1">{{ stats.total|default(0) }}</div>
+        </div>
+        <div class="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <i class="ki-filled ki-security-user text-lg"></i>
+        </div>
+    </div>
+
+    <div class="kt-card kt-card-kpi p-4 flex flex-row items-center justify-between">
+        <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Opérations réussies (SUCCESS)</span>
+            <div class="text-2xl font-extrabold text-emerald-600 mt-1">{{ stats.success|default(0) }}</div>
+        </div>
+        <div class="size-10 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center">
+            <i class="ki-filled ki-check-circle text-lg"></i>
+        </div>
+    </div>
+
+    <div class="kt-card kt-card-kpi p-4 flex flex-row items-center justify-between">
+        <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Échecs techniques / auth (FAILURE)</span>
+            <div class="text-2xl font-extrabold text-red-600 mt-1">{{ stats.failure|default(0) }}</div>
+        </div>
+        <div class="size-10 rounded-lg bg-red-50 text-red-600 border border-red-200/60 flex items-center justify-center">
+            <i class="ki-filled ki-cross-circle text-lg"></i>
+        </div>
+    </div>
+
+    <div class="kt-card kt-card-kpi p-4 flex flex-row items-center justify-between">
+        <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Accès refusés (DENIED)</span>
+            <div class="text-2xl font-extrabold text-amber-600 mt-1">{{ stats.denied|default(0) }}</div>
+        </div>
+        <div class="size-10 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center">
+            <i class="ki-filled ki-shield-cross text-lg"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres combinables -->
+<div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl p-4 mb-6">
+    <form method="get" action="{{ path('admin_audit_logs') }}" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- Recherche libre -->
+            <div class="relative flex items-center">
+                <i class="ki-filled ki-magnifier absolute start-3 text-muted-foreground text-sm"></i>
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ filters.q|default('') }}"
+                    placeholder="Action, email, IP, route, ID objet..."
+                    class="kt-input ps-9 pe-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+
+            <!-- Utilisateur -->
+            <div>
+                <select name="user_id" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les utilisateurs</option>
+                    {% for u in users|default([]) %}
+                        <option value="{{ u.id }}" {{ filters.user_id == u.id ? 'selected' : '' }}>
+                            {{ u.fullName }} ({{ u.email }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action d'audit -->
+            <div>
+                <select name="action" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Toutes les actions</option>
+                    {% for act in audit_actions|default([]) %}
+                        <option value="{{ act.value }}" {{ filters.action == act.value ? 'selected' : '' }}>
+                            {{ act.value }} — {{ act.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Résultat -->
+            <div>
+                <select name="result" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les résultats</option>
+                    {% for res in audit_results|default([]) %}
+                        <option value="{{ res.value }}" {{ filters.result == res.value ? 'selected' : '' }}>
+                            {{ res.value }} ({{ res.label }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <!-- Type d'entité -->
+            <div>
+                <select name="entity_type" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les types d'objet</option>
+                    {% for et in entity_types|default([]) %}
+                        <option value="{{ et }}" {{ filters.entity_type == et ? 'selected' : '' }}>{{ et }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- ID Entité -->
+            <div>
+                <input
+                    type="text"
+                    name="entity_id"
+                    value="{{ filters.entity_id|default('') }}"
+                    placeholder="ID Objet (ex: 42)"
+                    class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+
+            <!-- Structure -->
+            <div>
+                <select name="structure_id" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Toutes les structures</option>
+                    {% for st in structures|default([]) %}
+                        <option value="{{ st.id }}" {{ filters.structure_id == st.id ? 'selected' : '' }}>
+                            {{ st.code }} — {{ st.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Rôle -->
+            <div>
+                <select name="role_id" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les rôles</option>
+                    {% for r in roles|default([]) %}
+                        <option value="{{ r.id }}" {{ filters.role_id == r.id ? 'selected' : '' }}>
+                            {{ r.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date début -->
+            <div>
+                <input
+                    type="date"
+                    name="date_from"
+                    value="{{ filters.date_from|default('') }}"
+                    title="Date de début"
+                    class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+
+            <!-- Date fin -->
+            <div>
+                <input
+                    type="date"
+                    name="date_to"
+                    value="{{ filters.date_to|default('') }}"
+                    title="Date de fin"
+                    class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center pt-1">
+            <!-- Adresse IP -->
+            <div>
+                <input
+                    type="text"
+                    name="ip"
+                    value="{{ filters.ip|default('') }}"
+                    placeholder="Adresse IP (ex: 127.0.0.1)"
+                    class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+
+            <!-- Route -->
+            <div>
+                <input
+                    type="text"
+                    name="route"
+                    value="{{ filters.route|default('') }}"
+                    placeholder="Route ou chemin HTTP"
+                    class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+                />
+            </div>
+
+            <!-- Tri -->
+            <div>
+                <select name="sort" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                    <option value="DESC" {{ sort|default('DESC') == 'DESC' ? 'selected' : '' }}>Plus récents d'abord (DESC)</option>
+                    <option value="ASC" {{ sort|default('DESC') == 'ASC' ? 'selected' : '' }}>Plus anciens d'abord (ASC)</option>
+                </select>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="flex items-center gap-2">
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm grow inline-flex items-center justify-center gap-1.5 py-2">
+                    <i class="ki-filled ki-filter text-xs"></i>
+                    <span>Rechercher / Filtrer</span>
+                </button>
+                <a href="{{ path('admin_audit_logs') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-2.5" title="Réinitialiser tous les filtres">
+                    <i class="ki-filled ki-arrows-circle text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Tableau des journaux d'audit (STRICTEMENT LECTURE SEULE) -->
+<div class="kt-card kt-card-data overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="kt-table w-full text-start text-xs border-collapse">
+            <thead>
+                <tr class="border-b border-border/60 bg-secondary/30 text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                    <th class="py-3 px-4 text-start">ID</th>
+                    <th class="py-3 px-4 text-start">Date / Heure</th>
+                    <th class="py-3 px-4 text-start">Utilisateur</th>
+                    <th class="py-3 px-4 text-start">Action</th>
+                    <th class="py-3 px-4 text-start">Objet</th>
+                    <th class="py-3 px-4 text-center">Résultat</th>
+                    <th class="py-3 px-4 text-start">IP</th>
+                    <th class="py-3 px-4 text-start">Route / Méthode</th>
+                    <th class="py-3 px-4 text-end">Inspection</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border/40">
+                {% for log in logs %}
+                    <tr class="hover:bg-secondary/20 transition-colors">
+                        <!-- ID -->
+                        <td class="py-3 px-4 font-mono text-[11px] text-muted-foreground">
+                            #{{ log.id }}
+                        </td>
+
+                        <!-- Date / Heure -->
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <div class="font-medium text-foreground">{{ log.createdAt|date('d/m/Y') }}</div>
+                            <div class="text-[11px] text-muted-foreground font-mono">{{ log.createdAt|date('H:i:s') }}</div>
+                        </td>
+
+                        <!-- Utilisateur -->
+                        <td class="py-3 px-4">
+                            {% if log.user %}
+                                <div class="font-semibold text-foreground leading-tight">
+                                    {{ log.user.fullName }}
+                                </div>
+                                <div class="text-[11px] text-muted-foreground">
+                                    #{{ log.user.id }} &bull; {{ log.user.email }}
+                                </div>
+                                {% if log.user.organizationUnit %}
+                                    <span class="inline-block mt-0.5 text-[10px] font-medium text-primary">
+                                        {{ log.user.organizationUnit.code }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted-foreground italic text-[11px]">Anonyme / Système</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action -->
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded font-mono text-[11px] font-semibold bg-secondary text-foreground border border-border/60">
+                                {{ log.action }}
+                            </span>
+                            <div class="text-[11px] text-muted-foreground mt-0.5">
+                                {{ log.actionLabel }}
+                            </div>
+                        </td>
+
+                        <!-- Objet -->
+                        <td class="py-3 px-4">
+                            {% if log.entityType %}
+                                <span class="font-semibold text-foreground">{{ log.entityType }}</span>
+                                {% if log.entityId %}
+                                    <span class="font-mono text-[11px] text-primary ms-1">#{{ log.entityId }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted-foreground text-[11px]">&mdash;</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Résultat -->
+                        <td class="py-3 px-4 text-center">
+                            {% if log.result == 'SUCCESS' %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                    SUCCESS
+                                </span>
+                            {% elseif log.result == 'DENIED' %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                    DENIED
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                    <span class="size-1.5 rounded-full bg-red-500"></span>
+                                    FAILURE
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- IP -->
+                        <td class="py-3 px-4 font-mono text-[11px] text-foreground">
+                            {{ log.ipAddress ?: 'CLI / Interne' }}
+                        </td>
+
+                        <!-- Route / Méthode -->
+                        <td class="py-3 px-4">
+                            {% if log.httpMethod %}
+                                <span class="inline-block px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-secondary text-foreground border border-border/60 me-1">
+                                    {{ log.httpMethod }}
+                                </span>
+                            {% endif %}
+                            <span class="font-mono text-[11px] text-muted-foreground break-all">
+                                {{ log.route ?: '—' }}
+                            </span>
+                        </td>
+
+                        <!-- Inspection (Détail uniquement, aucun bouton modifier/supprimer) -->
+                        <td class="py-3 px-4 text-end">
+                            <a href="{{ path('admin_audit_log_show', {'id': log.id}) }}" class="kt-btn kt-btn-outline kt-btn-sm py-1.5 px-2.5 inline-flex items-center gap-1 text-xs" title="Consulter le détail technique">
+                                <i class="ki-filled ki-eye text-xs"></i>
+                                <span>Détail</span>
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-muted-foreground">
+                            <div class="flex flex-col items-center gap-2">
+                                <i class="ki-filled ki-shield-search text-3xl text-muted-foreground/50"></i>
+                                <p class="text-sm font-semibold text-foreground">Aucune trace d'audit trouvée</p>
+                                <p class="text-xs text-muted-foreground">Ajustez vos critères de filtrage ou réinitialisez la recherche.</p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'components/ui/pagination.html.twig' with {
+        'current_page': current_page,
+        'total_pages': total_pages,
+        'route': 'admin_audit_logs',
+        'params': filters|merge({'sort': sort, 'limit': limit})
+    } %}
+</div>
+{% endblock %}
+

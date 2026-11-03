@@ -1,0 +1,122 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Courrier Sortant {{ correspondence.reference }} — MCI e-Circuit{% endblock %}
+{% block page_title %}Fiche Courrier Sortant {{ correspondence.reference }}{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6">
+    <!-- En-tête -->
+    <div class="kt-card kt-card-info p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="font-mono text-base font-extrabold text-primary">{{ correspondence.reference }}</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-bold rounded-full {{ correspondence.status.value == 'SENT' ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20' : 'bg-blue-500/10 text-blue-700 border border-blue-500/20' }}">
+                    {{ correspondence.status.label }}
+                </span>
+            </div>
+            <h2 class="text-lg font-bold text-foreground mt-1">{{ correspondence.subject }}</h2>
+            <p class="text-xs text-muted-foreground mt-0.5">
+                Préparé le {{ correspondence.createdAt|date('d/m/Y à H:i') }}
+                {% if correspondence.registeredBy %}par {{ correspondence.registeredBy.fullName }}{% endif %}
+                {% if correspondence.sentAt %} • Expédié le {{ correspondence.sentAt|date('d/m/Y à H:i') }}{% endif %}
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            {% if case %}
+                <a href="{{ path('dossier_show', {id: case.id}) }}" class="kt-btn kt-btn-outline kt-btn-sm px-3 py-2 text-xs">
+                    <i class="ki-filled ki-folder text-xs mr-1"></i>
+                    Dossier {{ case.reference }}
+                </a>
+            {% endif %}
+            <a href="{{ path('courrier_outgoing_list') }}" class="kt-btn kt-btn-outline kt-btn-sm px-3 py-2 text-xs">
+                &larr; Registre sortant
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Informations principales -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            <div class="kt-card kt-card-info p-6">
+                <h3 class="text-sm font-bold text-foreground mb-4">Informations de Destinataire & d'Expédition</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="p-3.5 rounded-lg border border-border/60 bg-secondary/10">
+                        <span class="text-muted-foreground text-[11px] block">Destinataire</span>
+                        <span class="font-bold text-foreground text-sm mt-0.5 block">{{ correspondence.recipientName|default('Non renseigné') }}</span>
+                    </div>
+                    <div class="p-3.5 rounded-lg border border-border/60 bg-secondary/10">
+                        <span class="text-muted-foreground text-[11px] block">Organisme / Institution</span>
+                        <span class="font-bold text-foreground text-sm mt-0.5 block">{{ correspondence.recipientOrganisation|default('Externe') }}</span>
+                    </div>
+                    <div class="p-3.5 rounded-lg border border-border/60 bg-secondary/10">
+                        <span class="text-muted-foreground text-[11px] block">Structure émettrice</span>
+                        <span class="font-semibold text-foreground mt-0.5 block">{{ correspondence.issuingStructure ? correspondence.issuingStructure.name : '—' }}</span>
+                    </div>
+                    <div class="p-3.5 rounded-lg border border-border/60 bg-secondary/10">
+                        <span class="text-muted-foreground text-[11px] block">Mode d'expédition</span>
+                        <span class="font-semibold text-foreground mt-0.5 block">{{ correspondence.dispatchMethod|default('REMISE_OFFICIELLE') }}</span>
+                    </div>
+                </div>
+
+                {% if correspondence.observations %}
+                    <div class="mt-4 p-4 rounded-lg bg-secondary/20 border border-border/60 text-xs">
+                        <span class="text-[11px] font-semibold text-muted-foreground uppercase block mb-1">Observations & Historique de validation</span>
+                        <div class="whitespace-pre-line text-foreground">{{ correspondence.observations }}</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Document rattaché -->
+            <div class="kt-card kt-card-info p-6">
+                <h3 class="text-sm font-bold text-foreground mb-3">Document Officiel & Pièces Jointes</h3>
+                {% if correspondence.mainDocument %}
+                    <div class="p-3.5 rounded-lg border border-border flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-xs text-foreground">{{ correspondence.mainDocument.originalName }}</div>
+                            <div class="text-[11px] text-muted-foreground">{{ correspondence.mainDocument.type }} • {{ (correspondence.mainDocument.size / 1024)|round(1) }} Ko</div>
+                        </div>
+                        <a href="{{ path('document_download', {id: correspondence.mainDocument.id}) }}" class="kt-btn kt-btn-primary kt-btn-xs px-3 py-1.5 text-xs">
+                            Télécharger
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-xs text-muted-foreground italic">Aucun document numérique joint pour le moment.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Cycle de vie et transitions -->
+        <div class="flex flex-col gap-6">
+            <div class="kt-card kt-card-info p-6">
+                <h3 class="text-sm font-bold text-foreground mb-3">Cycle de Validation & d'Expédition</h3>
+                {% if allowed_transitions is not empty %}
+                    <form method="post" action="{{ path('courrier_outgoing_status', {id: correspondence.id}) }}" class="flex flex-col gap-3">
+                        <input type="hidden" name="_token" value="{{ csrf_token('outgoing_status_' ~ correspondence.id) }}">
+                        <div>
+                            <label for="target_status" class="block text-[11px] font-semibold text-foreground mb-1">Action suivante</label>
+                            <select id="target_status" name="target_status" class="kt-select w-full px-3 py-2 text-xs rounded-lg border border-border bg-background">
+                                {% for tr in allowed_transitions %}
+                                    <option value="{{ tr.value }}">{{ tr.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="comment" class="block text-[11px] font-semibold text-foreground mb-1">Mention / Référence de décharge</label>
+                            <textarea id="comment" name="comment" rows="2" placeholder="Commentaire de validation ou numéro de bordereau d'envoi..." class="kt-textarea w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background"></textarea>
+                        </div>
+                        <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 text-xs font-semibold w-full">
+                            Valider le changement de statut
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="p-3 rounded-lg bg-secondary/20 text-xs text-muted-foreground">
+                        Ce courrier sortant a atteint un statut final ({{ correspondence.status.label }}).
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

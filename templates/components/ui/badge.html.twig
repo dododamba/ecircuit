@@ -1,0 +1,17 @@
+{# 
+  Badge UI Réutilisable Metronic
+  Paramètres:
+  - label: string
+  - type: 'primary' | 'success' | 'warning' | 'destructive' | 'info' | 'secondary' | 'neutral'
+  - icon: string (code keenicon, optionnel)
+  - size: 'sm' | 'md' (défaut 'md')
+#}
+{% set badgeType = type|default('secondary') %}
+{% set badgeClass = badgeType == 'success' ? 'kt-badge-success' : (badgeType == 'destructive' or badgeType == 'danger' ? 'kt-badge-destructive' : (badgeType == 'warning' ? 'kt-badge-warning' : (badgeType == 'primary' ? 'kt-badge-primary' : (badgeType == 'info' ? 'kt-badge-info' : 'kt-badge-secondary')))) %}
+
+<span class="kt-badge {{ badgeClass }} kt-badge-outline {{ size|default('md') == 'sm' ? 'kt-badge-sm' : '' }} inline-flex items-center gap-1 font-semibold rounded-full px-2.5 py-0.5 text-xs">
+    {% if icon is defined and icon %}
+        <i class="ki-filled ki-{{ icon }} text-xs"></i>
+    {% endif %}
+    <span>{{ label }}</span>
+</span>

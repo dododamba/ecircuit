@@ -1,0 +1,1706 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Dossier {{ case.reference }} — MCI e-Circuit{% endblock %}
+{% block page_title %}Dossier Administratif {{ case.reference }}{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6">
+
+    <!-- Header Banner du Dossier -->
+    <div class="kt-card bg-background border border-border shadow-xs rounded-xl overflow-hidden p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-start gap-4">
+                <div class="size-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                    <i class="ki-filled ki-folder text-2xl text-amber-500"></i>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-mono text-lg font-bold text-foreground">{{ case.reference }}</span>
+                        
+                        {# Statut Badge #}
+                        {% set statusClass = case.statusCode in ['CLOSED', 'COMPLETED', 'ARCHIVED'] ? 'bg-secondary text-muted-foreground border-border' : (case.statusCode in ['REGISTERED', 'RECEIVED'] ? 'bg-info/10 text-info border-info/30' : (case.statusCode == 'IN_ANALYSIS' ? 'bg-primary/10 text-primary border-primary/30' : (case.statusCode == 'SIGNED' ? 'bg-success/10 text-success border-success/30' : 'bg-warning/10 text-warning border-warning/30'))) %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-bold rounded-full border {{ statusClass }}">
+                            {{ case.statusCode }}
+                        </span>
+
+                        {# Priorité Badge #}
+                        {% set pCode = case.priorityCode %}
+                        {% set badgeColor = pCode in ['URGENTE', 'URGENT'] ? 'bg-orange-500/10 text-orange-600 border-orange-500/30' : (pCode == 'TRES_URGENTE' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-secondary text-muted-foreground border-border') %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full border {{ badgeColor }}">
+                            <i class="ki-filled ki-flag text-[11px] me-1"></i>
+                            {{ case.priorityCode|default('NORMALE') }}
+                        </span>
+
+                        {% if case.isArchived %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-500/10 text-slate-600 border border-slate-500/30">
+                                <i class="ki-filled ki-archive text-[11px] me-1"></i> Archivé
+                            </span>
+                        {% elseif case.isClosed %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/30">
+                                <i class="ki-filled ki-check-circle text-[11px] me-1"></i> Clôturé
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <h2 class="text-base font-bold text-foreground mt-1">{{ case.subject }}</h2>
+                    
+                    <div class="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2">
+                        <span class="flex items-center gap-1.5">
+                            <i class="ki-filled ki-calendar text-xs"></i>
+                            Reçu le {{ case.receivedAt|date('d/m/Y') }}
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="ki-filled ki-bank text-xs"></i>
+                            Structure : <strong class="text-foreground font-medium">{{ case.currentStructure ? case.currentStructure.name : 'Non affectée' }}</strong>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="ki-filled ki-user text-xs"></i>
+                            Responsable : <strong class="text-foreground font-medium">{{ case.currentAssignee ? case.currentAssignee.fullName : 'Non affecté' }}</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Rapides & Traitement (Module 8) -->
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <a href="{{ path('dossier_list') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5">
+                    <i class="ki-filled ki-arrow-left text-xs"></i>
+                    <span>Retour liste</span>
+                </a>
+
+                {% if can_take_in_charge and not case.isClosed and not case.isArchived %}
+                    <form method="post" action="{{ path('dossier_take_in_charge', {id: case.id}) }}" class="inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_take_in_charge_' ~ case.id) }}">
+                        <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5 shadow-xs">
+                            <i class="ki-filled ki-handcart text-xs"></i>
+                            <span>Prendre en charge</span>
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if is_granted('DOCUMENT_UPLOAD') and not case.isClosed and not case.isArchived %}
+                    <button type="button" onclick="document.getElementById('modal-upload-doc').classList.remove('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5">
+                        <i class="ki-filled ki-file-up text-xs"></i>
+                        <span>Ajouter document</span>
+                    </button>
+                {% endif %}
+
+                {% if (is_granted('DOSSIER_ANNOTATE') or can_treat) and not case.isClosed and not case.isArchived %}
+                    <button type="button" onclick="document.getElementById('modal-add-note').classList.remove('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5">
+                        <i class="ki-filled ki-message-text text-xs"></i>
+                        <span>Ajouter note</span>
+                    </button>
+                {% endif %}
+
+                {% if can_assign and not case.isClosed and not case.isArchived %}
+                    <button type="button" onclick="document.getElementById('modal-assign').classList.remove('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5">
+                        <i class="ki-filled ki-user-tick text-xs"></i>
+                        <span>Affecter</span>
+                    </button>
+                {% endif %}
+
+                {% if available_transitions is not empty and not case.isClosed and not case.isArchived %}
+                    {% for trans in available_transitions %}
+                        <button type="button" 
+                            onclick="openWorkflowActionModal('{{ trans.action.value }}', '{{ trans.name|e('js') }}', '{{ trans.targetStep.name|e('js') }}', {{ trans.commentRequired ? 'true' : 'false' }}, '{{ trans.action.icon }}', '{{ trans.targetStep.targetStructure ? trans.targetStep.targetStructure.id : '' }}')"
+                            class="kt-btn {{ trans.action.cssClass }} kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5 shadow-xs">
+                            <i class="ki-filled {{ trans.action.icon }} text-xs"></i>
+                            <span>{{ trans.name }}</span>
+                        </button>
+                    {% endfor %}
+                {% else %}
+                    {% if can_forward and not case.isClosed and not case.isArchived %}
+                        <button type="button" onclick="document.getElementById('modal-transmit').classList.remove('hidden')" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5 shadow-xs">
+                            <i class="ki-filled ki-send text-xs"></i>
+                            <span>Transmettre</span>
+                        </button>
+                    {% endif %}
+                {% endif %}
+
+                {% if can_return and not case.isClosed and not case.isArchived %}
+                    <button type="button" onclick="document.getElementById('modal-return').classList.remove('hidden')" class="kt-btn kt-btn-warning kt-btn-sm py-2 px-3 text-xs inline-flex items-center gap-1.5 shadow-xs">
+                        <i class="ki-filled ki-arrow-left text-xs"></i>
+                        <span>Retourner</span>
+                    </button>
+                {% endif %}
+
+                {% if is_granted('DOSSIER_VALIDATE') and not case.isClosed and not case.isArchived %}
+                    <form method="post" action="{{ path('dossier_close', {id: case.id}) }}" class="inline" onsubmit="return confirm('Confirmez-vous la clôture administrative de ce dossier ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_close_' ~ case.id) }}">
+                        <button type="submit" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3 text-xs text-emerald-600 hover:bg-emerald-50 inline-flex items-center gap-1.5">
+                            <i class="ki-filled ki-check-circle text-xs"></i>
+                            <span>Clôturer</span>
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if is_granted('DOSSIER_VALIDATE') and not case.isArchived %}
+                    <form method="post" action="{{ path('dossier_archive', {id: case.id}) }}" class="inline" onsubmit="return confirm('Confirmez-vous le versement de ce dossier aux archives ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_archive_' ~ case.id) }}">
+                        <button type="submit" class="kt-btn kt-btn-ghost kt-btn-sm py-2 px-2 text-xs text-muted-foreground hover:text-foreground" title="Archiver">
+                            <i class="ki-filled ki-archive text-xs"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Navigation par Onglets Metronic -->
+        <div class="flex items-center gap-2 border-b border-border/80 mt-6 -mb-6 overflow-x-auto">
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'overview'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'overview' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-information text-xs"></i>
+                <span>Vue d'ensemble</span>
+            </a>
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'workflow'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'workflow' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-route text-xs"></i>
+                <span>Circuit & Suivi Workflow</span>
+                {% if workflow_instance and workflow_steps|length > 0 %}
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">{{ workflow_instance.currentStep.order }}/{{ workflow_steps|length }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'correspondences'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'correspondences' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-sms text-xs"></i>
+                <span>Courriers liés</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-secondary text-foreground font-mono">{{ case.correspondences|length }}</span>
+            </a>
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'documents'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'documents' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-file-text text-xs"></i>
+                <span>Documents & Pièces jointes</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-secondary text-foreground font-mono">{{ case.documents|length }}</span>
+            </a>
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'timeline' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-time text-xs"></i>
+                <span>Chronologie & Événements</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-secondary text-foreground font-mono">{{ case.events|length }}</span>
+            </a>
+            <a href="{{ path('dossier_show', {id: case.id, tab: 'transmissions'}) }}" class="px-4 py-3 text-xs font-semibold border-b-2 flex items-center gap-2 whitespace-nowrap {{ active_tab == 'transmissions' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground' }}">
+                <i class="ki-filled ki-delivery-door text-xs"></i>
+                <span>Circulation & Transmissions</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-secondary text-foreground font-mono">{{ case.transmissions|length }}</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenu des Onglets -->
+    {% if active_tab == 'overview' %}
+        <!-- ONGLET 1 : VUE D'ENSEMBLE -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Colonne 1 & 2 : Informations principales -->
+            <div class="lg:col-span-2 flex flex-col gap-6">
+                <!-- Cadre d'Affectation & Consignes de Traitement (Module 8) -->
+                {% if active_task or case.currentAssignee or case.deadline %}
+                    <div class="kt-card bg-background border {{ case.isOverdue ? 'border-destructive/50 bg-destructive/5' : 'border-primary/30 bg-primary/5' }} shadow-xs rounded-xl p-5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b {{ case.isOverdue ? 'border-destructive/20' : 'border-primary/20' }}">
+                            <div class="flex items-center gap-2.5">
+                                <div class="size-8 rounded-lg {{ case.isOverdue ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary' }} flex items-center justify-center">
+                                    <i class="ki-filled {{ case.isOverdue ? 'ki-warning-2' : 'ki-user-tick' }} text-sm"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs font-bold text-foreground">Instruction & Affectation en Cours</h4>
+                                    <p class="text-[11px] text-muted-foreground">Consignes et échéance fixées pour ce dossier</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% if case.deadline %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg border {{ case.isOverdue ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-background border-border text-foreground' }}">
+                                        <i class="ki-filled ki-time text-xs"></i>
+                                        Échéance : {{ case.deadline|date('d/m/Y') }}
+                                        {% if case.isOverdue %}<span class="uppercase tracking-wider text-[10px] ms-1">(Dépassée)</span>{% endif %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs mt-3.5">
+                            <div>
+                                <span class="text-muted-foreground text-[11px] block">Responsable désigné</span>
+                                <strong class="text-foreground font-semibold flex items-center gap-1.5 mt-0.5">
+                                    <i class="ki-filled ki-user text-xs text-primary"></i>
+                                    {{ case.currentAssignee ? case.currentAssignee.fullName : 'Non assigné nominativement' }}
+                                </strong>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground text-[11px] block">Structure détentrice</span>
+                                <strong class="text-foreground font-semibold flex items-center gap-1.5 mt-0.5">
+                                    <i class="ki-filled ki-bank text-xs text-primary"></i>
+                                    {{ case.currentStructure ? case.currentStructure.name : 'Cabinet' }}
+                                </strong>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground text-[11px] block">Statut de la tâche</span>
+                                <span class="badge {{ active_task and active_task.status.value == 'IN_PROGRESS' ? 'badge-primary' : 'badge-secondary' }} text-[11px] mt-0.5">
+                                    {{ active_task ? active_task.status.label : case.statusCode }}
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if active_task and active_task.instructions %}
+                            <div class="mt-3.5 p-3 rounded-lg bg-background border border-border/60 text-xs">
+                                <span class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Directives particulières :</span>
+                                <div class="text-foreground italic whitespace-pre-line">{{ active_task.instructions }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <i class="ki-filled ki-note text-primary"></i>
+                        <span>Objet & Description du Dossier</span>
+                    </h3>
+                    <div class="p-4 rounded-lg bg-secondary/20 border border-border/60 text-sm text-foreground leading-relaxed">
+                        {{ case.subject }}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div class="p-3.5 rounded-lg border border-border/60 bg-card">
+                            <span class="text-[11px] font-semibold text-muted-foreground uppercase">Canal d'Entrée</span>
+                            <div class="font-medium text-foreground text-xs mt-1 flex items-center gap-1.5">
+                                <i class="ki-filled ki-directbox-default text-xs text-primary"></i>
+                                {{ case.entryChannel.value }}
+                            </div>
+                        </div>
+                        <div class="p-3.5 rounded-lg border border-border/60 bg-card">
+                            <span class="text-[11px] font-semibold text-muted-foreground uppercase">Date d'Enregistrement</span>
+                            <div class="font-medium text-foreground text-xs mt-1 flex items-center gap-1.5">
+                                <i class="ki-filled ki-calendar text-xs text-primary"></i>
+                                {{ case.createdAt|date('d/m/Y à H:i') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expéditeur / Demandeur -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <i class="ki-filled ki-profile-circle text-primary"></i>
+                        <span>Expéditeur / Usager</span>
+                    </h3>
+                    {% if case.sender %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <span class="text-muted-foreground text-[11px]">Nom complet / Raison sociale</span>
+                                <div class="font-bold text-foreground text-sm mt-0.5">{{ case.sender.displayName }}</div>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground text-[11px]">Type d'expéditeur</span>
+                                <div class="font-medium text-foreground mt-0.5">{{ case.sender.type.value|default('Autre') }}</div>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground text-[11px]">Email</span>
+                                <div class="font-medium text-foreground mt-0.5">{{ case.sender.email|default('Non renseigné') }}</div>
+                            </div>
+                            <div>
+                                <span class="text-muted-foreground text-[11px]">Téléphone</span>
+                                <div class="font-medium text-foreground mt-0.5">{{ case.sender.phone|default('Non renseigné') }}</div>
+                            </div>
+                            {% if case.sender.organizationName %}
+                                <div class="sm:col-span-2">
+                                    <span class="text-muted-foreground text-[11px]">Organisme / Entreprise</span>
+                                    <div class="font-medium text-foreground mt-0.5">{{ case.sender.organizationName }}</div>
+                                </div>
+                            {% endif %}
+                            {% if case.sender.address %}
+                                <div class="sm:col-span-2">
+                                    <span class="text-muted-foreground text-[11px]">Adresse postale</span>
+                                    <div class="font-medium text-foreground mt-0.5">{{ case.sender.address }}</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 rounded-lg bg-secondary/20 text-xs text-muted-foreground italic">
+                            Aucun expéditeur spécifique rattaché à ce dossier.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Colonne 3 : Statut, Traitement & Détention -->
+            <div class="flex flex-col gap-6">
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <i class="ki-filled ki-shield-tick text-primary"></i>
+                        <span>Détention Administrative</span>
+                    </h3>
+                    <div class="flex flex-col gap-3 text-xs">
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/10">
+                            <span class="text-muted-foreground text-[11px] block">Structure détentrice actuelle</span>
+                            <div class="font-bold text-foreground text-xs mt-1 flex items-center gap-1.5">
+                                <i class="ki-filled ki-bank text-primary"></i>
+                                {{ case.currentStructure ? case.currentStructure.name : 'Non assignée' }}
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/10">
+                            <span class="text-muted-foreground text-[11px] block">Agent responsable</span>
+                            <div class="font-bold text-foreground text-xs mt-1 flex items-center gap-1.5">
+                                <i class="ki-filled ki-user text-primary"></i>
+                                {{ case.currentAssignee ? case.currentAssignee.fullName : 'Non affecté' }}
+                            </div>
+                        </div>
+
+                        {% if case.deadline %}
+                            <div class="p-3 rounded-lg border border-border/60 bg-secondary/10">
+                                <span class="text-muted-foreground text-[11px] block">Date d'échéance réglementaire</span>
+                                <div class="font-bold text-foreground text-xs mt-1 flex items-center gap-1.5">
+                                    <i class="ki-filled ki-timer text-amber-500"></i>
+                                    {{ case.deadline|date('d/m/Y H:i') }}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if not case.isClosed and not case.isArchived %}
+                            <form method="post" action="{{ path('dossier_update_deadline', {id: case.id}) }}" class="p-3 rounded-lg border border-border/60 bg-background flex flex-col gap-2">
+                                <input type="hidden" name="_token" value="{{ csrf_token('update_deadline_' ~ case.id) }}">
+                                <label for="deadline_input" class="text-[11px] font-semibold text-muted-foreground">Définir / Modifier l'échéance (S3.10)</label>
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <input type="date" id="deadline_input" name="deadline" value="{{ case.deadline ? case.deadline|date('Y-m-d') : '' }}" class="kt-input px-2 py-1 text-xs rounded border border-border bg-background grow">
+                                        <button type="submit" class="kt-btn kt-btn-outline kt-btn-xs px-2.5 py-1 text-xs">Enregistrer</button>
+                                    </div>
+                                    <input type="text" name="justification" placeholder="Motif du changement (optionnel)..." class="kt-input px-2 py-1 text-[11px] rounded border border-border bg-background text-muted-foreground">
+                                </div>
+                            </form>
+                        {% endif %}
+
+                        {% if case.isClosed %}
+                            <div class="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-800">
+                                <span class="text-[11px] font-semibold block text-emerald-700">Dossier Clôturé</span>
+                                <div class="text-xs mt-1">
+                                    Clôturé le {{ case.closedAt|date('d/m/Y à H:i') }}
+                                    {% if case.closedBy %}par {{ case.closedBy.fullName }}{% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if case.isArchived %}
+                            <div class="p-3 rounded-lg border border-slate-500/30 bg-slate-500/10 text-slate-800">
+                                <span class="text-[11px] font-semibold block text-slate-700">Versé aux Archives</span>
+                                <div class="text-xs mt-1">
+                                    Archivé le {{ case.archivedAt|date('d/m/Y à H:i') }}
+                                    {% if case.archivedBy %}par {{ case.archivedBy.fullName }}{% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Synthèse Pièces & Courriers -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                        <i class="ki-filled ki-chart-simple text-primary"></i>
+                        <span>Volume & Contenu</span>
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/15">
+                            <span class="text-2xl font-mono font-bold text-foreground">{{ case.correspondences|length }}</span>
+                            <span class="block text-[11px] text-muted-foreground mt-0.5">Courriers</span>
+                        </div>
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/15">
+                            <span class="text-2xl font-mono font-bold text-foreground">{{ case.documents|length }}</span>
+                            <span class="block text-[11px] text-muted-foreground mt-0.5">Documents</span>
+                        </div>
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/15">
+                            <span class="text-2xl font-mono font-bold text-foreground">{{ case.events|length }}</span>
+                            <span class="block text-[11px] text-muted-foreground mt-0.5">Événements</span>
+                        </div>
+                        <div class="p-3 rounded-lg border border-border/60 bg-secondary/15">
+                            <span class="text-2xl font-mono font-bold text-foreground">{{ case.transmissions|length }}</span>
+                            <span class="block text-[11px] text-muted-foreground mt-0.5">Transmissions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elseif active_tab == 'correspondences' %}
+        <!-- ONGLET 2 : COURRIERS LIÉS -->
+        <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
+                <div>
+                    <h3 class="text-sm font-bold text-foreground">Courriers Rattachés au Dossier</h3>
+                    <p class="text-xs text-muted-foreground">Courriers entrants originels et correspondances sortantes associées</p>
+                </div>
+                <a href="{{ path('courrier_outgoing_new', {case_id: case.id}) }}" class="kt-btn kt-btn-primary kt-btn-xs px-3 py-2 text-xs inline-flex items-center gap-1.5">
+                    <i class="ki-filled ki-send text-xs"></i>
+                    <span>Préparer un courrier sortant</span>
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            <th class="py-3 px-4">Référence Courrier</th>
+                            <th class="py-3 px-4">Direction</th>
+                            <th class="py-3 px-4">Date</th>
+                            <th class="py-3 px-4">Objet</th>
+                            <th class="py-3 px-4">Expéditeur / Destinataire</th>
+                            <th class="py-3 px-4">Statut</th>
+                            <th class="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/60 text-xs">
+                        {% for corr in case.correspondences %}
+                            <tr class="hover:bg-secondary/15">
+                                <td class="py-3 px-4 font-mono font-bold text-primary">
+                                    <a href="{{ path(corr.isOutgoing ? 'courrier_outgoing_show' : 'courrier_show', {id: corr.id}) }}" class="hover:underline flex items-center gap-1.5">
+                                        <i class="ki-filled {{ corr.isOutgoing ? 'ki-send' : 'ki-sms' }} text-xs text-primary"></i>
+                                        <span>{{ corr.reference }}</span>
+                                    </a>
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded {{ corr.isOutgoing ? 'bg-indigo-500/10 text-indigo-700' : 'bg-emerald-500/10 text-emerald-700' }}">
+                                        {{ corr.isOutgoing ? 'SORTANT' : 'ENTRANT' }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-muted-foreground">
+                                    {{ corr.receivedAt|date('d/m/Y') }}
+                                </td>
+                                <td class="py-3 px-4 max-w-xs font-semibold text-foreground truncate" title="{{ corr.subject }}">
+                                    {{ corr.subject }}
+                                </td>
+                                <td class="py-3 px-4">
+                                    {{ corr.isOutgoing ? (corr.recipientName|default('—')) : (corr.sender ? corr.sender.displayName : '—') }}
+                                </td>
+                                <td class="py-3 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary/10 text-primary border border-primary/20">
+                                        {{ corr.status.label }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-right whitespace-nowrap">
+                                    <a href="{{ path(corr.isOutgoing ? 'courrier_outgoing_show' : 'courrier_show', {id: corr.id}) }}" class="kt-btn kt-btn-ghost kt-btn-xs text-xs text-primary hover:underline">
+                                        Consulter courrier &rarr;
+                                    </a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-muted-foreground italic">
+                                    Aucun courrier direct rattaché.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% elseif active_tab == 'documents' %}
+        <!-- ONGLET 3 : GESTION DOCUMENTAIRE (Module 6) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Liste des documents -->
+            <div class="lg:col-span-2 flex flex-col gap-6">
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
+                        <div>
+                            <h3 class="text-sm font-bold text-foreground">Pièces Jointes & Documents du Dossier</h3>
+                            <p class="text-xs text-muted-foreground">Fichiers originaux, pièces justificatives et documents administratifs numérisés</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                    <th class="py-3 px-4">Nom du Document</th>
+                                    <th class="py-3 px-4">Type</th>
+                                    <th class="py-3 px-4">Taille</th>
+                                    <th class="py-3 px-4">Date d'Ajout</th>
+                                    <th class="py-3 px-4 text-right">Téléchargement</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border/60 text-xs">
+                                {% for doc in case.documents %}
+                                    <tr class="hover:bg-secondary/15">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="size-8 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center shrink-0">
+                                                    <i class="ki-filled ki-file-text text-sm"></i>
+                                                </div>
+                                                <div class="overflow-hidden">
+                                                    <div class="font-semibold text-foreground truncate max-w-xs" title="{{ doc.originalName }}">
+                                                        {{ doc.originalName }}
+                                                    </div>
+                                                    <div class="text-[10px] text-muted-foreground font-mono">
+                                                        v{{ doc.version }} • {{ doc.mimeType }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-md bg-secondary text-foreground border border-border">
+                                                {{ doc.type }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-muted-foreground font-mono">
+                                            {{ (doc.size / 1024)|round(1) }} Ko
+                                        </td>
+                                        <td class="py-3 px-4 whitespace-nowrap text-muted-foreground">
+                                            {{ doc.uploadedAt|date('d/m/Y H:i') }}
+                                            {% if doc.uploadedBy %}
+                                                <div class="text-[10px] text-muted-foreground">par {{ doc.uploadedBy.fullName }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                                            <a href="{{ path('document_download', {id: doc.id}) }}" class="kt-btn kt-btn-outline kt-btn-xs py-1.5 px-2.5 text-xs inline-flex items-center gap-1.5">
+                                                <i class="ki-filled ki-file-down text-xs"></i>
+                                                <span>Télécharger</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-muted-foreground italic">
+                                            Aucun document n'est encore rattaché directement à ce dossier.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire Téléversement de Document Complémentaire -->
+            <div>
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5 sticky top-6">
+                    <h3 class="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+                        <i class="ki-filled ki-file-up text-primary"></i>
+                        <span>Ajouter un Document</span>
+                    </h3>
+                    <p class="text-xs text-muted-foreground mb-4">Téléverser une pièce justificative ou un rapport</p>
+
+                    <form method="post" action="{{ path('dossier_document_upload', {id: case.id}) }}" enctype="multipart/form-data" class="flex flex-col gap-4 text-xs">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_doc_upload_' ~ case.id) }}">
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="document_file" class="font-semibold text-foreground">Fichier (PDF, JPEG, PNG — Max 20 Mo) *</label>
+                            <input 
+                                type="file" 
+                                id="document_file" 
+                                name="document_file" 
+                                required 
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                class="kt-input p-2 text-xs border border-border rounded-lg bg-background file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                            >
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="document_type" class="font-semibold text-foreground">Type de document *</label>
+                            <select id="document_type" name="document_type" class="kt-select p-2 text-xs border border-border rounded-lg bg-background">
+                                <option value="PIECE_JOINTE">Pièce jointe justificative</option>
+                                <option value="NOTE">Note technique / Rapport interne</option>
+                                <option value="DECISION">Projet de décision</option>
+                                <option value="REPONSE">Courrier de réponse</option>
+                                <option value="DOCUMENT_GENERE">Document généré</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 mt-2 flex items-center justify-center gap-2 shadow-xs">
+                            <i class="ki-filled ki-file-up text-xs"></i>
+                            <span>Téléverser la pièce</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    {% elseif active_tab == 'timeline' %}
+        <!-- ONGLET 4 : CHRONOLOGIE & HISTORIQUE (CaseEvent - Module 9) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Timeline verticale & Filtres -->
+            <div class="lg:col-span-2 flex flex-col gap-4">
+                <!-- Barre d'outils et Filtres de catégories (Module 9 - Section 5) -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/60">
+                        <div class="flex items-center gap-2.5">
+                            <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <i class="ki-filled ki-time-past text-base"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-foreground">Traçabilité & Historique du Dossier</h3>
+                                <p class="text-[11px] text-muted-foreground">Journal Chronologique des Actions & Événements</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-muted-foreground font-mono">
+                            {{ total_timeline_events|default(case.events|length) }} événement(s)
+                        </span>
+                    </div>
+
+                    <!-- Filtres par catégorie -->
+                    <div class="flex flex-wrap items-center gap-2 pt-3">
+                        {% set catCurrent = active_event_category|default('all') %}
+                        
+                        <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: 'all'}) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors {{ catCurrent == 'all' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground' }}">
+                            <i class="ki-filled ki-category text-xs"></i>
+                            <span>Toutes</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] {{ catCurrent == 'all' ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground' }}">
+                                {{ event_category_counts.all|default(case.events|length) }}
+                            </span>
+                        </a>
+
+                        <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: 'workflow'}) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors {{ catCurrent == 'workflow' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground' }}">
+                            <i class="ki-filled ki-route text-xs"></i>
+                            <span>Circuit / Workflow</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] {{ catCurrent == 'workflow' ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground' }}">
+                                {{ event_category_counts.workflow|default(0) }}
+                            </span>
+                        </a>
+
+                        <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: 'affectations'}) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors {{ catCurrent == 'affectations' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground' }}">
+                            <i class="ki-filled ki-user-tick text-xs"></i>
+                            <span>Affectations</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] {{ catCurrent == 'affectations' ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground' }}">
+                                {{ event_category_counts.affectations|default(0) }}
+                            </span>
+                        </a>
+
+                        <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: 'validations'}) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors {{ catCurrent == 'validations' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground' }}">
+                            <i class="ki-filled ki-check-circle text-xs"></i>
+                            <span>Validations</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] {{ catCurrent == 'validations' ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground' }}">
+                                {{ event_category_counts.validations|default(0) }}
+                            </span>
+                        </a>
+
+                        <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: 'documents'}) }}"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors {{ catCurrent == 'documents' ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground' }}">
+                            <i class="ki-filled ki-file-up text-xs"></i>
+                            <span>Documents</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px] {{ catCurrent == 'documents' ? 'bg-white/20 text-white' : 'bg-secondary text-muted-foreground' }}">
+                                {{ event_category_counts.documents|default(0) }}
+                            </span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Timeline visuelle avec groupement par date (Module 9 - Section 4) -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    {% set displayedEvents = timeline_events|default(case.events) %}
+                    {% set lastDate = '' %}
+
+                    <div class="relative border-s-2 border-border/80 ms-4 my-2 flex flex-col gap-6">
+                        {% for ev in displayedEvents %}
+                            {% set eventDate = ev.occurredAt|date('d/m/Y') %}
+                            
+                            {# Séparateur visuel de date (Exemple PRD : 02/09/2026, 03/09/2026...) #}
+                            {% if eventDate != lastDate %}
+                                <div class="relative -ms-4 my-1 flex items-center gap-3">
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 shadow-2xs font-mono">
+                                        <i class="ki-filled ki-calendar text-xs"></i>
+                                        <span>{{ eventDate }}</span>
+                                    </div>
+                                    <div class="flex-1 h-px bg-border/60"></div>
+                                </div>
+                                {% set lastDate = eventDate %}
+                            {% endif %}
+
+                            <div class="relative ps-6 group">
+                                {# Point d'ancrage avec KeenIcon coloré selon l'action #}
+                                {% set actionCode = ev.action|default(ev.eventType.value)|upper %}
+                                {% set iconColor = 'bg-primary text-white ring-primary/20' %}
+                                {% set keenIcon = 'ki-time' %}
+
+                                {% if actionCode in ['COMPLETED', 'RELEASED', 'CASE_CLOSED', 'VALIDATED', 'CASE_VALIDATED'] %}
+                                    {% set iconColor = 'bg-emerald-600 text-white ring-emerald-500/20' %}
+                                    {% set keenIcon = 'ki-check-circle' %}
+                                {% elseif actionCode in ['ANNOTATED', 'NOTE_ADDED', 'ANNOTATE'] %}
+                                    {% set iconColor = 'bg-amber-500 text-white ring-amber-500/20' %}
+                                    {% set keenIcon = 'ki-message-text' %}
+                                {% elseif actionCode in ['RETURNED', 'RETURN'] %}
+                                    {% set iconColor = 'bg-orange-500 text-white ring-orange-500/20' %}
+                                    {% set keenIcon = 'ki-arrow-left' %}
+                                {% elseif actionCode in ['REJECTED', 'REJECT'] %}
+                                    {% set iconColor = 'bg-rose-600 text-white ring-rose-500/20' %}
+                                    {% set keenIcon = 'ki-cross-circle' %}
+                                {% elseif actionCode in ['FORWARDED', 'FORWARD', 'CASE_FORWARDED', 'ORIENTED', 'ORIENT', 'SUBMITTED', 'SUBMIT'] %}
+                                    {% set iconColor = 'bg-blue-600 text-white ring-blue-500/20' %}
+                                    {% set keenIcon = 'ki-arrow-right' %}
+                                {% elseif actionCode in ['ASSIGNED', 'ASSIGN', 'CASE_ASSIGNED', 'DOSSIER_AFFECTE', 'TAKEN_IN_CHARGE', 'TAKE_IN_CHARGE'] %}
+                                    {% set iconColor = 'bg-indigo-600 text-white ring-indigo-500/20' %}
+                                    {% set keenIcon = 'ki-user-tick' %}
+                                {% elseif actionCode in ['DOCUMENT_ADDED', 'DOCUMENT_DOWNLOADED'] %}
+                                    {% set iconColor = 'bg-purple-600 text-white ring-purple-500/20' %}
+                                    {% set keenIcon = actionCode == 'DOCUMENT_DOWNLOADED' ? 'ki-file-down' : 'ki-file-up' %}
+                                {% elseif actionCode in ['DOSSIER_CREATED', 'CASE_CREATED', 'REGISTERED', 'CASE_REGISTERED'] %}
+                                    {% set iconColor = 'bg-teal-600 text-white ring-teal-500/20' %}
+                                    {% set keenIcon = 'ki-folder-added' %}
+                                {% endif %}
+
+                                <div class="absolute -start-[11px] top-1 size-5 rounded-full {{ iconColor }} ring-4 flex items-center justify-center text-[10px]">
+                                    <i class="ki-filled {{ keenIcon }}"></i>
+                                </div>
+
+                                <div class="flex flex-col gap-1.5 bg-card/60 p-3.5 rounded-xl border border-border/70 hover:border-primary/40 transition-colors shadow-2xs">
+                                    {# Ligne 1 : Intitulé, badge d'action, catégorie et heure exacte #}
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <div class="font-bold text-xs text-foreground flex items-center gap-2">
+                                            <span>{{ ev.label }}</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-secondary/80 text-foreground uppercase border border-border/60">
+                                                {{ actionCode }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+                                            <i class="ki-filled ki-time text-[10px]"></i>
+                                            {{ ev.occurredAt|date('H:i:s') }}
+                                        </span>
+                                    </div>
+
+                                    {# Ligne 2 : Utilisateur acteur et Structure #}
+                                    <div class="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                                        {% if ev.actor %}
+                                            <span class="flex items-center gap-1 font-medium text-foreground/80">
+                                                <i class="ki-filled ki-user text-primary text-[11px]"></i>
+                                                {{ ev.actor.fullName }}
+                                            </span>
+                                        {% endif %}
+                                        {% if ev.organizationUnit %}
+                                            <span class="flex items-center gap-1">
+                                                <i class="ki-filled ki-bank text-[11px]"></i>
+                                                {{ ev.organizationUnit.name }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    {# Ligne 3 : Ancienne / Nouvelle valeur (Module 9 - Section 2) #}
+                                    {% if ev.oldValue or ev.newValue %}
+                                        <div class="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/60 text-xs mt-1">
+                                            {% if ev.oldValue %}
+                                                <span class="text-muted-foreground text-[11px]">
+                                                    <span class="font-semibold text-foreground/70">Ancienne valeur :</span>
+                                                    <span class="line-through decoration-muted-foreground/60">{{ ev.oldValue }}</span>
+                                                </span>
+                                                <i class="ki-filled ki-arrow-right text-[10px] text-muted-foreground"></i>
+                                            {% endif %}
+                                            {% if ev.newValue %}
+                                                <span class="text-[11px]">
+                                                    <span class="font-semibold text-foreground/70">Nouvelle valeur :</span>
+                                                    <span class="font-semibold text-primary">{{ ev.newValue }}</span>
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+
+                                    {# Ligne 4 : Commentaire ou instruction #}
+                                    {% if ev.description %}
+                                        <div class="p-3 mt-1 rounded-lg bg-secondary/20 border border-border/60 text-xs text-foreground whitespace-pre-line leading-relaxed flex items-start gap-2">
+                                            <i class="ki-filled ki-message-text-2 text-muted-foreground text-xs mt-0.5 shrink-0"></i>
+                                            <span class="italic text-foreground/90">{{ ev.description }}</span>
+                                        </div>
+                                    {% endif %}
+
+                                    {# Ligne 5 : Métadonnées complémentaires le cas échéant #}
+                                    {% if ev.metadata and ev.metadata|length > 0 %}
+                                        <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                            {% for metaKey, metaVal in ev.metadata %}
+                                                {% if metaVal is not iterable and metaKey not in ['action', 'action_code'] %}
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] bg-secondary/50 text-muted-foreground border border-border/40 font-mono">
+                                                        {{ metaKey }}: {{ metaVal }}
+                                                    </span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="ps-6 py-8 text-center text-xs text-muted-foreground italic flex flex-col items-center gap-2">
+                                <i class="ki-filled ki-folder-search text-2xl text-muted-foreground/50"></i>
+                                <span>Aucun événement correspondant aux critères sélectionnés.</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {# Contrôles de pagination (Module 9 - Section 7) #}
+                    {% if total_event_pages|default(1) > 1 %}
+                        <div class="flex flex-wrap items-center justify-between gap-3 pt-4 mt-4 border-t border-border/60 text-xs">
+                            <span class="text-muted-foreground font-mono">
+                                Page {{ current_event_page|default(1) }} sur {{ total_event_pages }} ({{ total_timeline_events }} événements)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                {% if current_event_page|default(1) > 1 %}
+                                    <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: active_event_category|default('all'), event_page: (current_event_page - 1)}) }}"
+                                       class="kt-btn kt-btn-outline kt-btn-sm py-1 px-3">
+                                        <i class="ki-filled ki-arrow-left text-xs"></i>
+                                        <span>Précédent</span>
+                                    </a>
+                                {% endif %}
+                                {% if current_event_page|default(1) < total_event_pages %}
+                                    <a href="{{ path('dossier_show', {id: case.id, tab: 'timeline', event_category: active_event_category|default('all'), event_page: (current_event_page|default(1) + 1)}) }}"
+                                       class="kt-btn kt-btn-outline kt-btn-sm py-1 px-3">
+                                        <span>Suivant</span>
+                                        <i class="ki-filled ki-arrow-right text-xs"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Colonne latérale : Formulaire d'annotation & Intégrité -->
+            <div class="flex flex-col gap-4">
+                <!-- Formulaire d'annotation / Note administrative (Module 9 - ANNOTATED) -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5 sticky top-6">
+                    <h3 class="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+                        <i class="ki-filled ki-message-text text-primary"></i>
+                        <span>Ajouter une Note Administrative</span>
+                    </h3>
+                    <p class="text-xs text-muted-foreground mb-4">Observation interne insérée au fil chronologique immuable</p>
+
+                    <form method="post" action="{{ path('dossier_add_note', {id: case.id}) }}" class="flex flex-col gap-3 text-xs">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_note_' ~ case.id) }}">
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="note_text" class="font-semibold text-foreground">Contenu de la note / observation *</label>
+                            <textarea 
+                                id="note_text" 
+                                name="note" 
+                                rows="5" 
+                                required 
+                                placeholder="Indiquez ici vos conclusions, instructions de traitement ou remarques internes..."
+                                class="kt-input p-3 text-xs border border-border rounded-lg bg-background resize-y"
+                            ></textarea>
+                        </div>
+
+                        <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 flex items-center justify-center gap-2 shadow-xs">
+                            <i class="ki-filled ki-check text-xs"></i>
+                            <span>Enregistrer la note</span>
+                        </button>
+                    </form>
+
+                    <!-- Bloc de garantie d'intégrité et d'immutabilité (Module 9 - Section 6) -->
+                    <div class="mt-6 pt-4 border-t border-border/60 flex flex-col gap-2">
+                        <div class="flex items-center gap-2 text-xs font-bold text-foreground">
+                            <i class="ki-filled ki-shield-tick text-emerald-600"></i>
+                            <span>Intégrité & Immutabilité</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground leading-relaxed">
+                            Conformément aux règles institutionnelles de gouvernance documentaire du MCI, les événements enregistrés sont strictement non modifiables et non supprimables. Chaque intervention porte un horodatage certifié et l'identité de son auteur.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% elseif active_tab == 'transmissions' %}
+        <!-- ONGLET 5 : CIRCULATION & TRANSMISSIONS -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Historique des transmissions -->
+            <div class="lg:col-span-2">
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <h3 class="text-sm font-bold text-foreground mb-4 pb-3 border-b border-border/60 flex items-center gap-2">
+                        <i class="ki-filled ki-delivery-door text-primary"></i>
+                        <span>Historique des Transmissions Inter-Services</span>
+                    </h3>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                    <th class="py-3 px-4">Date</th>
+                                    <th class="py-3 px-4">De (Origine)</th>
+                                    <th class="py-3 px-4">Vers (Destinataire)</th>
+                                    <th class="py-3 px-4">Motif</th>
+                                    <th class="py-3 px-4">Par</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border/60 text-xs">
+                                {% for trans in case.transmissions %}
+                                    <tr class="hover:bg-secondary/15">
+                                        <td class="py-3.5 px-4 whitespace-nowrap text-muted-foreground font-mono">
+                                            {{ trans.transmittedAt|date('d/m/Y H:i') }}
+                                        </td>
+                                        <td class="py-3.5 px-4">
+                                            <span class="font-medium text-foreground">
+                                                {{ trans.sourceUnit ? trans.sourceUnit.name : '—' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-4">
+                                            <span class="font-bold text-primary flex items-center gap-1.5">
+                                                <i class="ki-filled ki-arrow-right text-xs"></i>
+                                                {{ trans.targetUnit ? trans.targetUnit.name : '—' }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-4">
+                                            <div class="font-semibold text-foreground">{{ trans.reason|default('Attribution') }}</div>
+                                            {% if trans.instructions %}
+                                                <div class="text-[11px] text-muted-foreground mt-0.5 italic">{{ trans.instructions }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3.5 px-4 whitespace-nowrap text-muted-foreground">
+                                            {{ trans.transmittedBy ? trans.transmittedBy.fullName : '—' }}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-muted-foreground italic">
+                                            Aucune transmission inter-services pour le moment.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire de transmission rapide -->
+            <div>
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5 sticky top-6">
+                    <h3 class="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+                        <i class="ki-filled ki-send text-primary"></i>
+                        <span>Transmettre le Dossier</span>
+                    </h3>
+                    <p class="text-xs text-muted-foreground mb-4">Transférer la responsabilité à une autre structure</p>
+
+                    <form method="post" action="{{ path('dossier_transmit', {id: case.id}) }}" class="flex flex-col gap-3 text-xs">
+                        <input type="hidden" name="_token" value="{{ csrf_token('dossier_transmit_' ~ case.id) }}">
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="target_unit_id_panel" class="font-semibold text-foreground">Structure destinataire *</label>
+                            <select id="target_unit_id_panel" name="target_unit_id" required class="kt-select p-2 text-xs border border-border rounded-lg bg-background">
+                                <option value="">Sélectionner la structure...</option>
+                                {% for s in structures %}
+                                    {% if not case.currentStructure or s.id != case.currentStructure.id %}
+                                        <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="reason_panel" class="font-semibold text-foreground">Motif de transmission *</label>
+                            <input 
+                                type="text" 
+                                id="reason_panel" 
+                                name="reason" 
+                                list="reasons_list" 
+                                placeholder="Pour attribution, avis technique, signature..." 
+                                required
+                                class="kt-input p-2 text-xs border border-border rounded-lg bg-background"
+                            >
+                            <datalist id="reasons_list">
+                                {% for r in transmission_reasons %}
+                                    <option value="{{ r.label }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="instructions_panel" class="font-semibold text-foreground">Instructions / Observations</label>
+                            <textarea 
+                                id="instructions_panel" 
+                                name="instructions" 
+                                rows="3" 
+                                placeholder="Précisions sur la suite à donner..."
+                                class="kt-input p-2 text-xs border border-border rounded-lg bg-background resize-y"
+                            ></textarea>
+                        </div>
+
+                        <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 mt-2 flex items-center justify-center gap-2 shadow-xs">
+                            <i class="ki-filled ki-send text-xs"></i>
+                            <span>Effectuer la transmission</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+    {% elseif active_tab == 'workflow' %}
+        <!-- ONGLET : CIRCUIT & SUIVI WORKFLOW (MODULE 7) -->
+        <div class="flex flex-col gap-6">
+            {% if not workflow_instance %}
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-8 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-secondary text-primary mb-3">
+                        <i class="ki-filled ki-route text-2xl"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-foreground">Aucun Workflow Actif</h3>
+                    <p class="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                        Ce dossier n'est pas encore engagé dans un circuit de workflow administratif officiel.
+                    </p>
+                </div>
+            {% else %}
+                <!-- Bandeau Statut & SLA -->
+                <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-base border border-primary/20 shrink-0">
+                                {{ workflow_instance.currentStep.order }}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Étape Actuelle du Circuit</span>
+                                    {% if workflow_instance.isOverdue %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/20 flex items-center gap-1 animate-pulse">
+                                            <i class="ki-filled ki-information-2 text-[10px]"></i>
+                                            Délai Dépassé
+                                        </span>
+                                    {% elseif workflow_instance.isCompleted %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/20">
+                                            Circuit Terminé
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary border border-primary/20">
+                                            En Cours
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <h2 class="text-base font-bold text-foreground mt-0.5 flex items-center gap-2">
+                                    <span>{{ workflow_instance.currentStep.name }}</span>
+                                    <span class="text-xs font-mono font-normal text-muted-foreground">({{ workflow_instance.currentStep.code }})</span>
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs border-t lg:border-t-0 pt-3 lg:pt-0 border-border/60">
+                            <div class="p-2.5 rounded-lg bg-secondary/15 border border-border/40">
+                                <span class="text-[10px] text-muted-foreground block font-medium">Structure détentrice</span>
+                                <strong class="text-foreground truncate block mt-0.5">{{ case.currentStructure ? case.currentStructure.name : 'Non définie' }}</strong>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-secondary/15 border border-border/40">
+                                <span class="text-[10px] text-muted-foreground block font-medium">Responsable actuel</span>
+                                <strong class="text-foreground truncate block mt-0.5">{{ case.currentAssignee ? case.currentAssignee.fullName : 'Non affecté' }}</strong>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-secondary/15 border border-border/40">
+                                <span class="text-[10px] text-muted-foreground block font-medium">Entrée dans l'étape</span>
+                                <strong class="text-foreground block mt-0.5 font-mono">{{ workflow_instance.stepEnteredAt|date('d/m/Y H:i') }}</strong>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-secondary/15 border border-border/40">
+                                <span class="text-[10px] text-muted-foreground block font-medium">Échéance de l'étape</span>
+                                <strong class="block mt-0.5 font-mono {{ workflow_instance.isOverdue ? 'text-destructive font-bold' : 'text-foreground' }}">
+                                    {{ workflow_instance.stepDeadline ? workflow_instance.stepDeadline|date('d/m/Y H:i') : 'Non limitée' }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Colonne 1 & 2 : Stepper du Circuit & Journal d'Audit du Workflow -->
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <!-- Visualisation Stepper du Circuit -->
+                        <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                            <div class="flex items-center justify-between pb-3 border-b border-border/60 mb-5">
+                                <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                                    <i class="ki-filled ki-route text-primary"></i>
+                                    <span>Circuit Hiérarchique Standard — Progression</span>
+                                </h3>
+                                <span class="text-xs text-muted-foreground font-mono">
+                                    Étape {{ workflow_instance.currentStep.order }} sur {{ workflow_steps|length }}
+                                </span>
+                            </div>
+
+                            <div class="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-3 sm:before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:bg-border">
+                                {% for step in workflow_steps %}
+                                    {% set isPast = step.order < workflow_instance.currentStep.order %}
+                                    {% set isCurrent = step.id == workflow_instance.currentStep.id %}
+                                    {% set isFuture = step.order > workflow_instance.currentStep.order %}
+
+                                    <div class="relative flex items-start gap-4 group">
+                                        <!-- Pastille d'étape -->
+                                        <div class="absolute -left-6 sm:-left-8 mt-0.5 w-6 sm:w-8 h-6 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-colors border
+                                            {{ isPast ? 'bg-emerald-500 text-white border-emerald-500 shadow-xs' : (isCurrent ? 'bg-primary text-primary-foreground border-primary ring-4 ring-primary/20 shadow-xs' : 'bg-background text-muted-foreground border-border') }}">
+                                            {% if isPast %}
+                                                <i class="ki-filled ki-check text-xs"></i>
+                                            {% else %}
+                                                {{ step.order }}
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Contenu de l'étape -->
+                                        <div class="flex-1 p-3.5 rounded-xl border transition-all
+                                            {{ isCurrent ? 'bg-primary/5 border-primary/40 shadow-xs' : (isPast ? 'bg-secondary/10 border-border/60' : 'bg-background border-border/40 opacity-70') }}">
+                                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-bold text-xs {{ isCurrent ? 'text-primary' : 'text-foreground' }}">
+                                                        {{ step.name }}
+                                                    </span>
+                                                    {% if isCurrent %}
+                                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                                                            Actuelle
+                                                        </span>
+                                                    {% elseif isPast %}
+                                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700">
+                                                            Validée
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                                <span class="text-[11px] font-mono text-muted-foreground">
+                                                    Code : {{ step.code }}
+                                                </span>
+                                            </div>
+
+                                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground mt-1">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="ki-filled ki-bank text-xs text-primary/70"></i>
+                                                    Structure cible : <strong class="text-foreground font-medium">{{ step.targetStructure ? step.targetStructure.name : 'Selon orientation' }}</strong>
+                                                </span>
+                                                <span class="flex items-center gap-1">
+                                                    <i class="ki-filled ki-shield-tick text-xs text-primary/70"></i>
+                                                    Rôle requis : <strong class="text-foreground font-medium">{{ step.targetRole ? step.targetRole.name : 'Tous agents habilités' }}</strong>
+                                                </span>
+                                                {% if step.standardDurationHours %}
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="ki-filled ki-time text-xs text-amber-500"></i>
+                                                        Délai standard : <strong class="text-foreground font-medium">{{ step.standardDurationHours }}h</strong>
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Journal d'Audit & Historique du Workflow -->
+                        <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5">
+                            <h3 class="text-sm font-bold text-foreground mb-4 pb-3 border-b border-border/60 flex items-center justify-between">
+                                <span class="flex items-center gap-2">
+                                    <i class="ki-filled ki-time text-primary"></i>
+                                    <span>Journal des Transitions & Traçabilité Métier</span>
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[11px] bg-secondary text-foreground font-mono">
+                                    {{ workflow_instance.history|length }} action{{ workflow_instance.history|length > 1 ? 's' : '' }}
+                                </span>
+                            </h3>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                            <th class="py-3 px-3">Date & Heure</th>
+                                            <th class="py-3 px-3">Action</th>
+                                            <th class="py-3 px-3">Transition</th>
+                                            <th class="py-3 px-3">Acteur & Structure</th>
+                                            <th class="py-3 px-3">Commentaire / Consignes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border/60 text-xs">
+                                        {% for log in workflow_instance.history %}
+                                            <tr class="hover:bg-secondary/15 transition-colors">
+                                                <td class="py-3 px-3 whitespace-nowrap text-muted-foreground font-mono">
+                                                    {{ log.occurredAt|date('d/m/Y H:i:s') }}
+                                                    {% if log.durationSeconds %}
+                                                        <span class="block text-[10px] text-muted-foreground/70">
+                                                            Étape : {{ (log.durationSeconds / 60)|round }} min
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="py-3 px-3 whitespace-nowrap">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold {{ log.action.badgeClass }}">
+                                                        <i class="ki-filled {{ log.action.icon }} text-[10px]"></i>
+                                                        {{ log.action.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="py-3 px-3">
+                                                    <div class="flex items-center gap-1.5 font-medium text-foreground">
+                                                        <span>{{ log.sourceStep ? log.sourceStep.name : 'Début' }}</span>
+                                                        <i class="ki-filled ki-arrow-right text-[10px] text-muted-foreground"></i>
+                                                        <span class="text-primary font-semibold">{{ log.targetStep.name }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-3">
+                                                    <div class="font-medium text-foreground">
+                                                        {{ log.actor ? log.actor.fullName : 'Système Automatique' }}
+                                                    </div>
+                                                    <div class="text-[11px] text-muted-foreground">
+                                                        {{ log.organizationUnit ? log.organizationUnit.name : 'Sans structure' }}
+                                                    </div>
+                                                </td>
+                                                <td class="py-3 px-3 max-w-xs">
+                                                    {% if log.comment %}
+                                                        <div class="p-2 rounded-lg bg-secondary/20 text-foreground italic border border-border/40">
+                                                            « {{ log.comment }} »
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="text-muted-foreground italic text-[11px]">Sans commentaire</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="5" class="py-8 text-center text-muted-foreground italic">
+                                                    Aucune transition enregistrée pour le moment.
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne 3 : Actions Disponibles, Tâche Active & Règles -->
+                    <div class="flex flex-col gap-6">
+                        <!-- Carte Actions Disponibles -->
+                        <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5 sticky top-6">
+                            <h3 class="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                                <i class="ki-filled ki-flash text-primary"></i>
+                                <span>Actions de Workflow Autorisées</span>
+                            </h3>
+                            <p class="text-xs text-muted-foreground mb-4">
+                                Actions permises à l'étape actuelle selon votre rôle et votre structure.
+                            </p>
+
+                            {% if available_transitions is not empty and not case.isClosed and not case.isArchived %}
+                                <div class="flex flex-col gap-2.5">
+                                    {% for trans in available_transitions %}
+                                        <button type="button" 
+                                            onclick="openWorkflowActionModal('{{ trans.action.value }}', '{{ trans.name|e('js') }}', '{{ trans.targetStep.name|e('js') }}', {{ trans.commentRequired ? 'true' : 'false' }}, '{{ trans.action.icon }}', '{{ trans.targetStep.targetStructure ? trans.targetStep.targetStructure.id : '' }}')"
+                                            class="w-full kt-btn {{ trans.action.cssClass }} kt-btn-sm py-2.5 px-3.5 text-xs flex items-center justify-between shadow-xs text-left">
+                                            <span class="flex items-center gap-2">
+                                                <i class="ki-filled {{ trans.action.icon }} text-sm"></i>
+                                                <span class="font-semibold">{{ trans.name }}</span>
+                                            </span>
+                                            <i class="ki-filled ki-arrow-right text-xs opacity-70"></i>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="p-4 rounded-lg bg-secondary/20 border border-border/60 text-xs text-muted-foreground text-center">
+                                    {% if case.isClosed %}
+                                        <i class="ki-filled ki-lock text-base mb-1 block text-muted-foreground"></i>
+                                        Le dossier est clôturé. Aucune action supplémentaire n'est requise.
+                                    {% elseif case.isArchived %}
+                                        <i class="ki-filled ki-archive text-base mb-1 block text-muted-foreground"></i>
+                                        Le dossier est versé aux archives.
+                                    {% else %}
+                                        <i class="ki-filled ki-information text-base mb-1 block text-muted-foreground"></i>
+                                        Aucune action autorisée pour votre profil à cette étape du circuit.
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <!-- Tâche Active -->
+                            {% if workflow_instance.activeTask %}
+                                <div class="mt-6 pt-5 border-t border-border/60">
+                                    <h4 class="text-xs font-bold text-foreground mb-3 flex items-center gap-2">
+                                        <i class="ki-filled ki-task text-primary"></i>
+                                        <span>Tâche Active en Cours</span>
+                                    </h4>
+                                    <div class="p-3 rounded-lg bg-secondary/15 border border-border/60 space-y-2 text-xs">
+                                        <div class="font-semibold text-foreground">
+                                            {{ workflow_instance.activeTask.title }}
+                                        </div>
+                                        <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                            <i class="ki-filled ki-bank text-xs"></i>
+                                            Structure : <strong class="text-foreground">{{ workflow_instance.activeTask.targetStructure ? workflow_instance.activeTask.targetStructure.name : 'Non affectée' }}</strong>
+                                        </div>
+                                        <div class="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                            <i class="ki-filled ki-user text-xs"></i>
+                                            Assigné à : <strong class="text-foreground">{{ workflow_instance.activeTask.targetUser ? workflow_instance.activeTask.targetUser.fullName : 'Tout agent de la structure' }}</strong>
+                                        </div>
+                                        {% if workflow_instance.activeTask.deadline %}
+                                            <div class="text-[11px] flex items-center gap-1.5 {{ workflow_instance.activeTask.isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground' }}">
+                                                <i class="ki-filled ki-time text-xs"></i>
+                                                Échéance : {{ workflow_instance.activeTask.deadline|date('d/m/Y H:i') }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Règle Métier RB-005 -->
+                            <div class="mt-6 pt-5 border-t border-border/60 text-xs text-muted-foreground space-y-2">
+                                <span class="font-bold text-foreground text-[11px] uppercase tracking-wider block flex items-center gap-1">
+                                    <i class="ki-filled ki-shield-check text-primary"></i>
+                                    Règles de Contrôle Backend
+                                </span>
+                                <p class="text-[11px] leading-relaxed">
+                                    <strong>Règle RB-005 :</strong> Le passage par le Secrétaire Général est strictement obligatoire avant transmission aux Directions techniques. Tout contournement est bloqué côté serveur.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- MODAL AFFECTATION -->
+<div id="modal-assign" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-user-tick text-primary"></i>
+                <span>Affecter le Dossier {{ case.reference }}</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-assign').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_assign', {id: case.id}) }}" class="flex flex-col gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('dossier_assign_' ~ case.id) }}">
+
+            <div class="flex flex-col gap-1.5">
+                <label for="assignee_id" class="font-semibold text-foreground">Agent responsable</label>
+                <select id="assignee_id" name="assignee_id" class="kt-select p-2 border border-border rounded-lg bg-background">
+                    <option value="">Sélectionner un agent...</option>
+                    {% for a in agents %}
+                        <option value="{{ a.id }}" {{ case.currentAssignee and case.currentAssignee.id == a.id ? 'selected' : '' }}>
+                            {{ a.fullName }} ({{ a.organizationUnit ? a.organizationUnit.name : 'Sans structure' }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="structure_id" class="font-semibold text-foreground">Structure d'affectation</label>
+                <select id="structure_id" name="structure_id" class="kt-select p-2 border border-border rounded-lg bg-background">
+                    <option value="">Conserver la structure de l'agent ou actuelle</option>
+                    {% for s in structures %}
+                        <option value="{{ s.id }}" {{ case.currentStructure and case.currentStructure.id == s.id ? 'selected' : '' }}>
+                            {{ s.name }} ({{ s.code }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="assign_deadline" class="font-semibold text-foreground">Échéance réglementaire (Date limite)</label>
+                <input type="date" id="assign_deadline" name="deadline" value="{{ case.deadline ? case.deadline|date('Y-m-d') : '' }}" class="kt-input p-2 text-xs border border-border rounded-lg bg-background">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="instructions" class="font-semibold text-foreground">Instructions particulières</label>
+                <textarea id="instructions" name="instructions" rows="3" placeholder="Consignes particulières pour le traitement du dossier..." class="kt-input p-2 border border-border rounded-lg bg-background resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-assign').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 shadow-xs">
+                    Confirmer l'affectation
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL RETOUR (MODULE 8) -->
+<div id="modal-return" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-arrow-left text-warning"></i>
+                <span>Retourner le Dossier {{ case.reference }}</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-return').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_return', {id: case.id}) }}" class="flex flex-col gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('dossier_return_' ~ case.id) }}">
+
+            <div class="p-3 rounded-lg bg-warning/10 border border-warning/30 text-warning-foreground">
+                <p class="font-medium">Le retour nécessite impérativement un motif explicite à destination de l'agent ou de la structure émettrice.</p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="return_reason" class="font-semibold text-foreground">Motif obligatoire du retour *</label>
+                <input 
+                    type="text" 
+                    id="return_reason" 
+                    name="reason" 
+                    placeholder="Dossier incomplet, pièces manquantes, précisions requises..." 
+                    required 
+                    class="kt-input p-2 text-xs border border-border rounded-lg bg-background"
+                >
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="return_target_unit" class="font-semibold text-foreground">Structure destinataire du retour</label>
+                <select id="return_target_unit" name="target_unit_id" class="kt-select p-2 border border-border rounded-lg bg-background">
+                    <option value="">Structure d'origine / Responsable précédent</option>
+                    {% for s in structures %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="return_comment" class="font-semibold text-foreground">Commentaires & Instructions de correction</label>
+                <textarea id="return_comment" name="comment" rows="3" placeholder="Détaillez les corrections attendues avant nouvelle soumission..." class="kt-input p-2 border border-border rounded-lg bg-background resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-return').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" class="kt-btn kt-btn-warning kt-btn-sm py-2 px-4 shadow-xs">
+                    Confirmer le retour
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL AJOUT DOCUMENT (MODULE 8) -->
+<div id="modal-upload-doc" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-file-up text-primary"></i>
+                <span>Ajouter un document au Dossier {{ case.reference }}</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-upload-doc').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_document_upload', {id: case.id}) }}" enctype="multipart/form-data" class="flex flex-col gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('dossier_doc_upload_' ~ case.id) }}">
+
+            <div class="flex flex-col gap-1.5">
+                <label for="doc_file_modal" class="font-semibold text-foreground">Fichier (PDF, DOCX, PNG...) *</label>
+                <input type="file" id="doc_file_modal" name="document_file" required class="kt-input p-2 text-xs border border-border rounded-lg bg-background">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="doc_type_modal" class="font-semibold text-foreground">Type de pièce</label>
+                <select id="doc_type_modal" name="document_type" class="kt-select p-2 border border-border rounded-lg bg-background">
+                    <option value="NOTE_TECHNIQUE">Note technique / Rapport d'instruction</option>
+                    <option value="PROJET_REPONSE">Projet de réponse / Courrier de retour</option>
+                    <option value="PIECE_JOINTE" selected>Pièce jointe / Justificatif</option>
+                    <option value="AVIS_JURIDIQUE">Avis juridique</option>
+                    <option value="BORDEREAU">Bordereau</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-upload-doc').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 shadow-xs">
+                    Téléverser
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL AJOUT NOTE / OBSERVATION (MODULE 8) -->
+<div id="modal-add-note" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-message-text text-primary"></i>
+                <span>Ajouter une observation / Note</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-add-note').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_add_note', {id: case.id}) }}" class="flex flex-col gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('dossier_note_' ~ case.id) }}">
+
+            <div class="flex flex-col gap-1.5">
+                <label for="note_text_modal" class="font-semibold text-foreground">Texte de l'observation / directive *</label>
+                <textarea id="note_text_modal" name="note" rows="4" required placeholder="Saisissez votre note, avis, consigne ou synthèse d'instruction..." class="kt-input p-2 text-xs border border-border rounded-lg bg-background resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-add-note').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 shadow-xs">
+                    Enregistrer la note
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL TRANSMISSION -->
+<div id="modal-transmit" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i class="ki-filled ki-send text-primary"></i>
+                <span>Transmettre le Dossier {{ case.reference }}</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-transmit').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_transmit', {id: case.id}) }}" class="flex flex-col gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('dossier_transmit_' ~ case.id) }}">
+
+            <div class="flex flex-col gap-1.5">
+                <label for="target_unit_id_modal" class="font-semibold text-foreground">Structure destinataire *</label>
+                <select id="target_unit_id_modal" name="target_unit_id" required class="kt-select p-2 border border-border rounded-lg bg-background">
+                    <option value="">Sélectionner la structure...</option>
+                    {% for s in structures %}
+                        {% if not case.currentStructure or s.id != case.currentStructure.id %}
+                            <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="reason_modal" class="font-semibold text-foreground">Motif de transmission *</label>
+                <input 
+                    type="text" 
+                    id="reason_modal" 
+                    name="reason" 
+                    list="reasons_list_modal" 
+                    placeholder="Pour attribution, avis technique, signature..." 
+                    required
+                    class="kt-input p-2 text-xs border border-border rounded-lg bg-background"
+                >
+                <datalist id="reasons_list_modal">
+                    {% for r in transmission_reasons %}
+                        <option value="{{ r.label }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="instructions_modal" class="font-semibold text-foreground">Instructions</label>
+                <textarea id="instructions_modal" name="instructions" rows="3" placeholder="Précisions sur la suite à donner..." class="kt-input p-2 border border-border rounded-lg bg-background resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-transmit').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 shadow-xs">
+                    Transmettre
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL ACTION DE WORKFLOW DYNAMIQUE (MODULE 7) -->
+<div id="modal-workflow-action" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center hidden p-4">
+    <div class="bg-background border border-border rounded-xl shadow-xl max-w-lg w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-border/80 mb-4">
+            <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                <i id="wf-modal-icon" class="ki-filled ki-send text-primary text-base"></i>
+                <span id="wf-modal-title">Exécuter l'action de workflow</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-workflow-action').classList.add('hidden')" class="text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-sm"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{{ path('dossier_workflow_action', {id: case.id}) }}" class="flex flex-col gap-4" id="wf-action-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('workflow_action_' ~ case.id) }}">
+            <input type="hidden" name="action" id="wf-action-input" value="">
+
+            <div class="p-3 rounded-lg bg-secondary/20 border border-border/60 flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] text-muted-foreground block">Étape actuelle</span>
+                    <strong class="text-foreground font-semibold">{{ workflow_instance ? workflow_instance.currentStep.name : 'N/A' }}</strong>
+                </div>
+                <i class="ki-filled ki-arrow-right text-muted-foreground text-sm"></i>
+                <div class="text-right">
+                    <span class="text-[11px] text-muted-foreground block">Étape cible</span>
+                    <strong class="text-primary font-semibold" id="wf-modal-target-step">—</strong>
+                </div>
+            </div>
+
+            <!-- Structure cible (pour ORIENT ou FORWARD) -->
+            <div id="wf-structure-group" class="flex flex-col gap-1.5 hidden">
+                <label for="wf-target-structure" class="font-semibold text-foreground">Structure destinataire</label>
+                <select id="wf-target-structure" name="target_structure_id" class="kt-select p-2 border border-border rounded-lg bg-background text-xs">
+                    <option value="">Sélectionner une structure...</option>
+                    {% for s in structures %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Assignataire (pour ASSIGN) -->
+            <div id="wf-assignee-group" class="flex flex-col gap-1.5 hidden">
+                <label for="wf-assignee" class="font-semibold text-foreground">Agent instructeur / traitant</label>
+                <select id="wf-assignee" name="assignee_id" class="kt-select p-2 border border-border rounded-lg bg-background text-xs">
+                    <option value="">Sélectionner un agent...</option>
+                    {% for a in agents %}
+                        <option value="{{ a.id }}">{{ a.fullName }} ({{ a.organizationUnit ? a.organizationUnit.name : 'Sans structure' }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Commentaire / Instruction / Justification -->
+            <div class="flex flex-col gap-1.5">
+                <label for="wf-comment" class="font-semibold text-foreground flex items-center justify-between">
+                    <span id="wf-comment-label">Commentaire / Consignes</span>
+                    <span id="wf-comment-required-tag" class="text-destructive text-[11px] font-normal hidden">* Obligatoire</span>
+                </label>
+                <textarea id="wf-comment" name="comment" rows="3" placeholder="Saisissez vos observations, motifs, directives ou conclusions..." class="kt-input p-2 text-xs border border-border rounded-lg bg-background resize-y"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+                <button type="button" onclick="document.getElementById('modal-workflow-action').classList.add('hidden')" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3">
+                    Annuler
+                </button>
+                <button type="submit" id="wf-modal-submit-btn" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-4 shadow-xs flex items-center gap-1.5">
+                    <i class="ki-filled ki-check text-xs"></i>
+                    <span id="wf-modal-btn-label">Confirmer</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openWorkflowActionModal(action, actionLabel, targetStepName, commentRequired, iconName, defaultStructureId) {
+    document.getElementById('wf-action-input').value = action;
+    document.getElementById('wf-modal-title').textContent = actionLabel;
+    document.getElementById('wf-modal-btn-label').textContent = actionLabel;
+    document.getElementById('wf-modal-target-step').textContent = targetStepName || 'Étape cible';
+    
+    var iconEl = document.getElementById('wf-modal-icon');
+    iconEl.className = 'ki-filled ' + (iconName || 'ki-send') + ' text-primary text-base';
+
+    var commentField = document.getElementById('wf-comment');
+    var commentReqTag = document.getElementById('wf-comment-required-tag');
+    var commentLabel = document.getElementById('wf-comment-label');
+    
+    if (commentRequired || action === 'REJECT' || action === 'RETURN') {
+        commentField.required = true;
+        commentReqTag.classList.remove('hidden');
+        commentLabel.textContent = (action === 'REJECT' ? 'Motif formel de rejet' : (action === 'RETURN' ? 'Motif du retour' : 'Commentaire obligatoire'));
+    } else {
+        commentField.required = false;
+        commentReqTag.classList.add('hidden');
+        commentLabel.textContent = 'Commentaire / Consignes (Optionnel)';
+    }
+
+    var structGroup = document.getElementById('wf-structure-group');
+    var structSelect = document.getElementById('wf-target-structure');
+    if (action === 'ORIENT' || action === 'FORWARD') {
+        structGroup.classList.remove('hidden');
+        if (defaultStructureId) {
+            structSelect.value = defaultStructureId;
+        }
+    } else {
+        structGroup.classList.add('hidden');
+    }
+
+    var assigneeGroup = document.getElementById('wf-assignee-group');
+    if (action === 'ASSIGN') {
+        assigneeGroup.classList.remove('hidden');
+    } else {
+        assigneeGroup.classList.add('hidden');
+    }
+
+    document.getElementById('modal-workflow-action').classList.remove('hidden');
+}
+</script>
+
+{% endblock %}

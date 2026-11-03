@@ -1,0 +1,947 @@
+/* ==========================================================================
+   MCI e-Circuit — Design System Institutionnel & Harmonisation Metronic
+   Direction Artistique : ULTRA PREMIUM · INSTITUTIONNELLE · MODERNE · LIGHT
+   République du Tchad — Ministère du Commerce et de l’Industrie
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. TOKENS & VARIABLES DU DESIGN SYSTEM
+   -------------------------------------------------------------------------- */
+:root {
+  /* Palette Institutionnelle (République du Tchad) */
+  --mci-blue-gov: #002664;          /* Bleu institutionnel profond d'État */
+  --mci-blue-gov-hover: #001c4b;
+  --mci-blue-gov-active: #001333;
+  --mci-blue-gov-light: #eef3f9;    /* Teinte douce pour états actifs/hover */
+  --mci-blue-gov-border: #ccd8e8;
+
+  --mci-gold-gov: #fecb00;          /* Jaune institutionnel (touches discrètes) */
+  --mci-red-gov: #c60c30;           /* Rouge institutionnel officiel */
+
+  /* Palette de surfaces et textes */
+  --mci-bg: #f7f8fa;                /* Fond principal de l'application */
+  --mci-surface: #ffffff;           /* Surface des cartes et panneaux */
+  --mci-surface-secondary: #f1f4f8; /* Surface secondaire (en-têtes table, inputs) */
+  --mci-border: #e6eaf0;            /* Bordures institutionnelles fines */
+  --mci-border-subtle: #edf1f6;
+
+  --mci-text-main: #202938;         /* Texte principal haute lisibilité */
+  --mci-text-muted: #687386;        /* Texte secondaire / libellés */
+  --mci-text-hint: #94a3b8;         /* Métadonnées / placeholders */
+
+  /* Couleurs sémantiques / fonctionnelles sobres */
+  --mci-success: #15803d;
+  --mci-success-bg: #f0fdf4;
+  --mci-success-border: #bbf7d0;
+
+  --mci-warning: #b45309;
+  --mci-warning-bg: #fffbeb;
+  --mci-warning-border: #fde68a;
+
+  --mci-danger: #c60c30;
+  --mci-danger-bg: #fef2f2;
+  --mci-danger-border: #fecaca;
+
+  --mci-info: #0369a1;
+  --mci-info-bg: #f0f9ff;
+  --mci-info-border: #bae6fd;
+
+  /* Surcharge globale des variables Metronic / Tailwind v4 */
+  --primary: #002664;
+  --primary-foreground: #ffffff;
+  --background: #f7f8fa;
+  --foreground: #202938;
+  --card: #ffffff;
+  --card-foreground: #202938;
+  --popover: #ffffff;
+  --popover-foreground: #202938;
+  --secondary: #f1f4f8;
+  --secondary-foreground: #334155;
+  --muted: #f1f4f8;
+  --muted-foreground: #687386;
+  --accent: #eef3f9;
+  --accent-foreground: #002664;
+  --destructive: #c60c30;
+  --destructive-foreground: #ffffff;
+  --border: #e6eaf0;
+  --input: #d9e1ea;
+  --ring: rgba(0, 38, 100, 0.16);
+  --radius: 0.625rem;               /* 10px */
+
+  /* Typographie & Ombres */
+  --font-family-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --shadow-subtle: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
+  --shadow-dropdown: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 20px 35px -10px rgba(15, 23, 42, 0.15), 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+
+  /* Design Tokens Cartes (Cards) */
+  --mci-card-bg: #ffffff;
+  --mci-card-border: #e6eaf0;
+  --mci-card-border-subtle: #edf1f6;
+  --mci-card-radius: 0.75rem;               /* 12px */
+  --mci-card-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
+  --mci-card-shadow-hover: 0 4px 12px 0 rgba(0, 38, 100, 0.06), 0 2px 4px -1px rgba(0, 38, 100, 0.03);
+  --mci-card-header-bg: #ffffff;
+  --mci-card-header-padding-x: 1.5rem;      /* 24px */
+  --mci-card-header-padding-y: 1.125rem;    /* 18px */
+  --mci-card-body-padding: 1.5rem;          /* 24px */
+  --mci-card-footer-bg: #f8fafc;
+  --mci-card-footer-padding-x: 1.5rem;
+  --mci-card-footer-padding-y: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   2. NORMALISATION GLOBALE & TYPOGRAPHIE
+   -------------------------------------------------------------------------- */
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--mci-bg) !important;
+  color: var(--mci-text-main) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--mci-text-main);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.mci-brand-title {
+  font-family: var(--font-family-base);
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
+   3. LAYOUT GLOBAL — SIDEBAR, HEADER, CONTENT & FOOTER
+   -------------------------------------------------------------------------- */
+
+.demo1 {
+  --sidebar-width: 280px;
+  --sidebar-default-width: 280px;
+  --sidebar-width-collapse: 80px;
+  --header-height: 70px;
+}
+
+/* Sidebar */
+.kt-sidebar {
+  background-color: var(--mci-surface) !important;
+  border-inline-end: 1px solid var(--mci-border) !important;
+  inset-inline-start: 0 !important;
+  left: 0 !important;
+  box-shadow: 1px 0 3px 0 rgba(15, 23, 42, 0.02) !important;
+}
+
+.kt-sidebar-header {
+  height: 70px !important;
+  border-bottom: 1px solid var(--mci-border) !important;
+  background-color: var(--mci-surface) !important;
+  padding: 0 1.25rem !important;
+}
+
+#sidebar_toggle {
+  background-color: var(--mci-surface) !important;
+  border: 1px solid var(--mci-border) !important;
+  color: var(--mci-text-muted) !important;
+  transition: all 0.2s ease !important;
+}
+#sidebar_toggle:hover {
+  background-color: var(--mci-surface-secondary) !important;
+  color: var(--mci-blue-gov) !important;
+}
+
+.kt-menu-heading {
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  color: var(--mci-text-hint) !important;
+  padding-left: 0.75rem !important;
+  margin-top: 0.5rem !important;
+  text-transform: uppercase !important;
+}
+
+.kt-menu-link {
+  transition: all 0.15s ease !important;
+  border-radius: 8px !important;
+}
+
+.kt-menu-item.active > .kt-menu-link,
+.kt-menu-link.active {
+  background-color: var(--mci-blue-gov-light) !important;
+  color: var(--mci-blue-gov) !important;
+  font-weight: 600 !important;
+}
+
+.kt-menu-item.active > .kt-menu-link .kt-menu-icon,
+.kt-menu-link.active .kt-menu-icon {
+  color: var(--mci-blue-gov) !important;
+}
+
+.kt-menu-link:hover:not(.active) {
+  background-color: var(--mci-surface-secondary) !important;
+  color: var(--mci-blue-gov) !important;
+}
+
+.kt-menu-accordion {
+  border-inline-start: 1.5px solid var(--mci-border) !important;
+}
+
+.kt-sidebar-footer {
+  border-top: 1px solid var(--mci-border) !important;
+  background-color: var(--mci-surface) !important;
+  padding: 0.875rem 1.25rem !important;
+}
+
+/* Header Topbar */
+.kt-header {
+  height: 70px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border-bottom: 1px solid var(--mci-border) !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Content Wrapper */
+.kt-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+}
+
+/* Zone Principale de Contenu */
+main#content {
+  background-color: var(--mci-bg) !important;
+  flex: 1 0 auto !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 3.5rem !important;
+  min-height: auto !important;
+}
+
+/* Footer Institutionnel */
+.kt-footer {
+  background-color: var(--mci-surface) !important;
+  border-top: 1px solid var(--mci-border) !important;
+  color: var(--mci-text-muted) !important;
+  font-size: 0.75rem !important;
+  flex-shrink: 0 !important;
+  margin-top: auto !important;
+  width: 100% !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. COMPOSANTS RÉUTILISABLES HARMONISÉS
+   -------------------------------------------------------------------------- */
+
+/* Cartes (Cards) — Système Unifié & Harmonisé */
+.kt-card {
+  background-color: var(--mci-card-bg) !important;
+  border: 1px solid var(--mci-card-border) !important;
+  border-radius: var(--mci-card-radius) !important;
+  box-shadow: var(--mci-card-shadow) !important;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease !important;
+}
+
+.kt-card-header {
+  border-bottom: 1px solid var(--mci-card-border-subtle) !important;
+  padding: var(--mci-card-header-padding-y) var(--mci-card-header-padding-x) !important;
+  background-color: var(--mci-card-header-bg) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  border-top-left-radius: inherit !important;
+  border-top-right-radius: inherit !important;
+  min-height: 56px !important;
+}
+
+/* Surcharge des variantes d'en-tête pour éliminer les teintes trop grises */
+.kt-card > div.border-b:first-child {
+  background-color: var(--mci-card-header-bg) !important;
+  border-bottom-color: var(--mci-card-border-subtle) !important;
+}
+
+.kt-card-icon {
+  width: 2.25rem !important; /* 36px */
+  height: 2.25rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0.5rem !important;
+  background-color: var(--mci-blue-gov-light) !important;
+  color: var(--mci-blue-gov) !important;
+  flex-shrink: 0 !important;
+  font-size: 1.125rem !important;
+}
+
+.kt-card-title {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: var(--mci-text-main) !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+.kt-card-subtitle,
+.kt-card-description {
+  font-size: 0.75rem !important;
+  color: var(--mci-text-muted) !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0 !important;
+}
+
+.kt-card-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  flex-shrink: 0 !important;
+}
+
+.kt-card-body,
+.kt-card-content {
+  padding: var(--mci-card-body-padding) !important;
+  flex: 1 1 auto !important;
+}
+
+.kt-card-flush .kt-card-body,
+.kt-card-flush .kt-card-content,
+.kt-card-body.p-0,
+.kt-card-content.p-0 {
+  padding: 0 !important;
+}
+
+.kt-card-footer {
+  border-top: 1px solid var(--mci-card-border-subtle) !important;
+  background-color: var(--mci-card-footer-bg) !important;
+  padding: var(--mci-card-footer-padding-y) var(--mci-card-footer-padding-x) !important;
+  border-bottom-left-radius: inherit !important;
+  border-bottom-right-radius: inherit !important;
+  font-size: 0.75rem !important;
+  color: var(--mci-text-muted) !important;
+}
+
+/* --- Variantes Spécialisées de Cartes --- */
+
+/* 1. Form Card */
+.kt-card-form {
+  background-color: #ffffff !important;
+}
+
+.kt-card-form .kt-card-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid var(--mci-card-border-subtle) !important;
+}
+
+.kt-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--mci-border-subtle);
+  margin-bottom: 1.75rem;
+}
+
+.kt-form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.kt-form-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+}
+
+.kt-form-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mci-text-muted);
+}
+
+.kt-form-section-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--mci-border-subtle);
+}
+
+/* 2. KPI / Stat Card */
+.kt-card-kpi {
+  padding: 1.25rem !important;
+  border-radius: var(--mci-card-radius) !important;
+  background-color: var(--mci-card-bg) !important;
+  border: 1px solid var(--mci-card-border) !important;
+  box-shadow: var(--mci-card-shadow) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.kt-card-kpi:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--mci-card-shadow-hover) !important;
+  border-color: var(--mci-blue-gov-border) !important;
+}
+
+.kt-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.kt-kpi-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+}
+
+.kt-kpi-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--mci-text-main);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.kt-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mci-text-muted);
+  margin-top: 0.375rem;
+}
+
+/* 3. Data / Table Card */
+.kt-card-data {
+  border-radius: var(--mci-card-radius) !important;
+  overflow: hidden !important;
+}
+
+.kt-card-data .kt-card-header {
+  background-color: var(--mci-card-header-bg) !important;
+  border-bottom: 1px solid var(--mci-card-border-subtle) !important;
+}
+
+.kt-card-data .kt-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* 4. Info & Workflow Card */
+.kt-card-info,
+.kt-card-workflow {
+  background-color: var(--mci-card-bg) !important;
+  border: 1px solid var(--mci-card-border) !important;
+  border-radius: var(--mci-card-radius) !important;
+}
+
+.kt-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.kt-data-item {
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--mci-card-border-subtle);
+  background-color: #fbfcfe;
+}
+
+.kt-data-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mci-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.kt-data-value {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--mci-text-main);
+  line-height: 1.3;
+}
+
+/* Boutons (Buttons) */
+.kt-btn {
+  font-family: var(--font-family-base) !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.375rem !important;
+  cursor: pointer !important;
+}
+
+.kt-btn-primary {
+  background-color: var(--mci-blue-gov) !important;
+  border: 1px solid var(--mci-blue-gov) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 38, 100, 0.15) !important;
+}
+.kt-btn-primary:hover {
+  background-color: var(--mci-blue-gov-hover) !important;
+  border-color: var(--mci-blue-gov-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 8px rgba(0, 38, 100, 0.2) !important;
+}
+.kt-btn-primary:active {
+  background-color: var(--mci-blue-gov-active) !important;
+  transform: translateY(0) !important;
+}
+
+.kt-btn-secondary {
+  background-color: var(--mci-surface-secondary) !important;
+  border: 1px solid var(--mci-border) !important;
+  color: var(--mci-text-main) !important;
+}
+.kt-btn-secondary:hover {
+  background-color: var(--mci-border) !important;
+  color: var(--mci-blue-gov) !important;
+}
+
+.kt-btn-outline {
+  background-color: var(--mci-surface) !important;
+  border: 1px solid var(--mci-border) !important;
+  color: var(--mci-text-main) !important;
+}
+.kt-btn-outline:hover {
+  background-color: var(--mci-surface-secondary) !important;
+  border-color: var(--mci-blue-gov-border) !important;
+  color: var(--mci-blue-gov) !important;
+}
+
+.kt-btn-destructive {
+  background-color: var(--mci-danger) !important;
+  border: 1px solid var(--mci-danger) !important;
+  color: #ffffff !important;
+}
+.kt-btn-destructive:hover {
+  background-color: #a80a29 !important;
+  border-color: #a80a29 !important;
+}
+
+.kt-btn-ghost {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--mci-text-muted) !important;
+}
+.kt-btn-ghost:hover {
+  background-color: var(--mci-surface-secondary) !important;
+  color: var(--mci-text-main) !important;
+}
+
+/* Tailles de boutons */
+.kt-btn-sm {
+  height: 34px !important;
+  padding: 0 0.75rem !important;
+  font-size: 0.75rem !important;
+}
+
+.kt-btn-md,
+.kt-btn:not(.kt-btn-sm):not(.kt-btn-lg):not(.kt-btn-icon) {
+  height: 40px !important;
+  padding: 0 1rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.kt-btn-lg {
+  height: 46px !important;
+  padding: 0 1.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* Formulaires & Contrôles de Saisie */
+.kt-input,
+.kt-select,
+.kt-textarea,
+select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="tel"],
+input[type="number"],
+textarea {
+  font-family: var(--font-family-base) !important;
+  background-color: var(--mci-surface) !important;
+  border: 1px solid var(--mci-border) !important;
+  border-radius: 8px !important;
+  color: var(--mci-text-main) !important;
+  font-size: 0.8125rem !important;
+  transition: all 0.15s ease !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+
+.kt-input,
+.kt-select,
+select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="tel"],
+input[type="number"] {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+textarea,
+.kt-textarea {
+  min-height: 90px !important;
+  padding: 0.625rem 0.75rem !important;
+  resize: vertical !important;
+  line-height: 1.5 !important;
+}
+
+.kt-input:hover,
+.kt-select:hover,
+.kt-textarea:hover,
+select:hover,
+input:hover,
+textarea:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.kt-input:focus,
+.kt-select:focus,
+.kt-textarea:focus,
+select:focus,
+input:focus,
+textarea:focus {
+  border-color: var(--mci-blue-gov) !important;
+  box-shadow: 0 0 0 3px rgba(0, 38, 100, 0.12) !important;
+}
+
+::placeholder,
+.kt-input::placeholder,
+textarea::placeholder {
+  color: var(--mci-text-hint) !important;
+  font-size: 0.8125rem !important;
+}
+
+.kt-input-sm,
+select.kt-input-sm {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  font-size: 0.75rem !important;
+}
+
+label {
+  font-size: 0.78125rem !important;
+  font-weight: 600 !important;
+  color: var(--mci-text-main) !important;
+  margin-bottom: 0.375rem !important;
+}
+
+/* Zone de Téléchargement & Uploads Harmonisée */
+.mci-dropzone {
+  border: 2px dashed rgba(148, 163, 184, 0.6);
+  background-color: rgba(248, 250, 252, 0.75);
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.mci-dropzone:hover,
+.mci-dropzone.dragover {
+  border-color: var(--mci-blue-gov);
+  background-color: var(--mci-blue-gov-light);
+}
+
+.mci-dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+}
+
+/* Tableaux (Tables) Institutionnels */
+.kt-table,
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 0.8125rem !important;
+}
+
+.kt-table thead tr,
+table thead tr {
+  background-color: var(--mci-surface-secondary) !important;
+  border-bottom: 1px solid var(--mci-border) !important;
+}
+
+.kt-table thead th,
+table thead th {
+  padding: 0.75rem 1rem !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--mci-text-muted) !important;
+  vertical-align: middle !important;
+}
+
+.kt-table tbody tr,
+table tbody tr {
+  border-bottom: 1px solid var(--mci-border-subtle) !important;
+  transition: background-color 0.12s ease !important;
+}
+
+.kt-table tbody tr:hover,
+table tbody tr:hover {
+  background-color: rgba(0, 38, 100, 0.02) !important;
+}
+
+.kt-table tbody td,
+table tbody td {
+  padding: 0.875rem 1rem !important;
+  color: var(--mci-text-main) !important;
+  vertical-align: middle !important;
+}
+
+/* Badges & Statuts */
+.kt-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  padding: 0.2rem 0.55rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid transparent !important;
+  line-height: 1.2 !important;
+}
+
+.kt-badge-primary {
+  background-color: var(--mci-blue-gov-light) !important;
+  color: var(--mci-blue-gov) !important;
+  border-color: var(--mci-blue-gov-border) !important;
+}
+
+.kt-badge-success {
+  background-color: var(--mci-success-bg) !important;
+  color: var(--mci-success) !important;
+  border-color: var(--mci-success-border) !important;
+}
+
+.kt-badge-warning {
+  background-color: var(--mci-warning-bg) !important;
+  color: var(--mci-warning) !important;
+  border-color: var(--mci-warning-border) !important;
+}
+
+.kt-badge-destructive {
+  background-color: var(--mci-danger-bg) !important;
+  color: var(--mci-danger) !important;
+  border-color: var(--mci-danger-border) !important;
+}
+
+.kt-badge-info {
+  background-color: var(--mci-info-bg) !important;
+  color: var(--mci-info) !important;
+  border-color: var(--mci-info-border) !important;
+}
+
+.kt-badge-secondary {
+  background-color: var(--mci-surface-secondary) !important;
+  color: var(--mci-text-muted) !important;
+  border-color: var(--mci-border) !important;
+}
+
+/* Modales (Modals) */
+.kt-modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.kt-modal-content {
+  background-color: var(--mci-surface) !important;
+  border: 1px solid var(--mci-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-modal) !important;
+}
+
+.kt-modal-header {
+  border-bottom: 1px solid var(--mci-border) !important;
+  padding: 1.125rem 1.5rem !important;
+}
+
+.kt-modal-footer {
+  border-top: 1px solid var(--mci-border) !important;
+  background-color: var(--mci-surface-secondary) !important;
+  padding: 0.875rem 1.5rem !important;
+}
+
+/* Dropdowns & Menus */
+.kt-menu-dropdown {
+  background-color: var(--mci-surface) !important;
+  border: 1px solid var(--mci-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-dropdown) !important;
+}
+
+/* Alertes & Notifications Flash */
+.kt-alert {
+  border-radius: 10px !important;
+  padding: 0.875rem 1.25rem !important;
+  border: 1px solid transparent !important;
+  font-size: 0.8125rem !important;
+}
+
+.kt-alert-success {
+  background-color: var(--mci-success-bg) !important;
+  border-color: var(--mci-success-border) !important;
+  color: #14532d !important;
+}
+
+.kt-alert-destructive {
+  background-color: var(--mci-danger-bg) !important;
+  border-color: var(--mci-danger-border) !important;
+  color: #7f1d1d !important;
+}
+
+.kt-alert-warning {
+  background-color: var(--mci-warning-bg) !important;
+  border-color: var(--mci-warning-border) !important;
+  color: #78350f !important;
+}
+
+.kt-alert-info {
+  background-color: var(--mci-info-bg) !important;
+  border-color: var(--mci-info-border) !important;
+  color: #0c4a6e !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. AJUSTEMENTS RESPONSIVE, MICRO-INTERACTIONS & ACCESSIBILITÉ
+   -------------------------------------------------------------------------- */
+
+/* Scrollbars fines et sobres */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Accessibilité & Focus Visible */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--mci-blue-gov) !important;
+  outline-offset: 2px !important;
+}
+
+/* Statuts Fonctionnels Normalisés MCI e-Circuit */
+.status-badge-registered,
+.status-badge-new {
+  background-color: var(--mci-info-bg) !important;
+  color: var(--mci-info) !important;
+  border-color: var(--mci-info-border) !important;
+}
+
+.status-badge-in-progress,
+.status-badge-in-analysis {
+  background-color: var(--mci-blue-gov-light) !important;
+  color: var(--mci-blue-gov) !important;
+  border-color: var(--mci-blue-gov-border) !important;
+}
+
+.status-badge-signed,
+.status-badge-completed,
+.status-badge-active {
+  background-color: var(--mci-success-bg) !important;
+  color: var(--mci-success) !important;
+  border-color: var(--mci-success-border) !important;
+}
+
+.status-badge-urgent {
+  background-color: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #ffedd5 !important;
+}
+
+.status-badge-very-urgent,
+.status-badge-rejected,
+.status-badge-error {
+  background-color: var(--mci-danger-bg) !important;
+  color: var(--mci-danger) !important;
+  border-color: var(--mci-danger-border) !important;
+}
+
+.status-badge-closed,
+.status-badge-archived,
+.status-badge-inactive {
+  background-color: var(--mci-surface-secondary) !important;
+  color: var(--mci-text-muted) !important;
+  border-color: var(--mci-border) !important;
+}
+
+@media (max-width: 1023px) {
+  .kt-sidebar {
+    width: 280px !important;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  main#content {
+    padding-top: 80px !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

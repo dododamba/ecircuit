@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="h-full" data-kt-theme="true" data-kt-theme-mode="light" dir="ltr" lang="fr">
+    <head>
+        {% include 'partials/head.html.twig' %}
+        {% block stylesheets %}{% endblock %}
+    </head>
+
+    <body class="antialiased min-h-screen flex flex-col text-base text-foreground bg-[#F8FAFC] demo1 kt-sidebar-fixed kt-header-fixed">
+
+        {% set page_title_captured %}{% block page_title %}{% endblock %}{% endset %}
+
+        <!-- Page Root Container -->
+        <div class="flex grow flex-col min-h-screen w-full">
+        
+            <!-- Sidebar Navigation -->
+            {% include 'partials/sidebar.html.twig' %}
+
+            <!-- Content Wrapper -->
+            <div class="kt-wrapper flex grow flex-col min-w-0 min-h-screen">
+            
+                <!-- Header Topbar -->
+                {% include 'partials/header.html.twig' with {'header_title': page_title_captured|trim} %}
+
+                <!-- Main Content Area -->
+                <main class="grow flex flex-col py-6" id="content" role="main">
+                    <div class="{% block container_class %}kt-container-fixed{% endblock %} w-full grow flex flex-col">
+                        {% include 'partials/flashes.html.twig' %}
+                    
+                        {% block body %}{% endblock %}
+                    </div>
+                </main>
+
+                <!-- Institutional Footer -->
+                {% include 'partials/footer.html.twig' %}
+            </div>
+
+        </div>
+
+        <!-- Scripts Bundle -->
+        {% include 'partials/scripts.html.twig' %}
+        {% block javascripts %}{% endblock %}
+    </body>
+</html>

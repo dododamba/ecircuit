@@ -1,0 +1,204 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Gestion des Utilisateurs &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Comptes Utilisateurs{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_users')},
+    {'label': 'Utilisateurs'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de page -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Répertoire des utilisateurs habilités
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Gestion des agents, affectations aux structures administratives et statuts de connexion.
+        </p>
+    </div>
+    {% if is_granted('USER_CREATE') or is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_user_new') }}" class="kt-btn kt-btn-primary kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-plus text-xs"></i>
+            <span>Nouvel utilisateur</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Filtres et Recherche Metronic -->
+<div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl p-4 mb-6">
+    <form method="get" action="{{ path('admin_users') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+        
+        <div class="relative flex items-center">
+            <i class="ki-filled ki-magnifier absolute start-3 text-muted-foreground text-sm"></i>
+            <input 
+                id="q" 
+                name="q" 
+                value="{{ app.request and app.request.query ? app.request.query.get('q') : (search|default('')) }}" 
+                placeholder="Nom, prénom ou e-mail..."
+                class="kt-input ps-9 pe-3 py-2 w-full text-xs rounded-lg border border-border bg-background"
+            />
+        </div>
+
+        <div>
+            <select name="status" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                <option value="">Tous les statuts</option>
+                <option value="ACTIVE" {{ (app.request and app.request.query and app.request.query.get('status') == 'ACTIVE') or (status|default('') == 'ACTIVE') ? 'selected' : '' }}>Actifs</option>
+                <option value="DISABLED" {{ (app.request and app.request.query and app.request.query.get('status') == 'DISABLED') or (status|default('') == 'DISABLED') ? 'selected' : '' }}>Désactivés</option>
+            </select>
+        </div>
+
+        <div>
+            <select name="role_id" class="kt-select py-2 px-3 w-full text-xs rounded-lg border border-border bg-background">
+                <option value="">Tous les rôles</option>
+                {% for role in roles|default([]) %}
+                    <option value="{{ role.id }}" {{ (app.request and app.request.query and app.request.query.get('role_id') == role.id) or (roleId|default(null) == role.id) ? 'selected' : '' }}>{{ role.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm grow inline-flex items-center justify-center gap-1.5 py-2">
+                <i class="ki-filled ki-filter text-xs"></i>
+                <span>Filtrer</span>
+            </button>
+            {% if app.request and app.request.query and app.request.query.count > 0 %}
+                <a href="{{ path('admin_users') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-2.5" title="Réinitialiser les filtres">
+                    <i class="ki-filled ki-cross text-xs"></i>
+                </a>
+            {% endif %}
+        </div>
+
+    </form>
+</div>
+
+<!-- Table des Utilisateurs Metronic -->
+<div class="kt-card kt-card-data overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="kt-table w-full text-start text-xs border-collapse">
+            <thead>
+                <tr class="border-b border-border/60 bg-secondary/30 text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                    <th class="py-3 px-5 text-start">Utilisateur</th>
+                    <th class="py-3 px-4 text-start">Rôle(s)</th>
+                    <th class="py-3 px-4 text-start">Structure d'affectation</th>
+                    <th class="py-3 px-4 text-start">Dernière session</th>
+                    <th class="py-3 px-4 text-center">Statut</th>
+                    <th class="py-3 px-5 text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border/40">
+                {% for user in users %}
+                    <tr class="hover:bg-secondary/20 transition-colors">
+                        <!-- Utilisateur -->
+                        <td class="py-3.5 px-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+                                    {{ user.firstName|first }}{{ user.lastName|first }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-foreground text-sm leading-tight">
+                                        {{ user.fullName }}
+                                    </span>
+                                    <span class="text-[11px] text-muted-foreground mt-0.5">
+                                        {{ user.email }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Rôles -->
+                        <td class="py-3.5 px-4">
+                            <div class="flex flex-wrap gap-1">
+                                {% for role in user.accessRoles %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary text-secondary-foreground border border-border/60">
+                                        {{ role.label }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted-foreground text-[11px] italic">Aucun rôle</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+
+                        <!-- Structure -->
+                        <td class="py-3.5 px-4 text-foreground">
+                            {% if user.organizationUnit %}
+                                <div class="flex items-center gap-1.5 font-medium">
+                                    <i class="ki-filled ki-bank text-muted-foreground text-xs"></i>
+                                    <span>{{ user.organizationUnit.name }}</span>
+                                </div>
+                            {% else %}
+                                <span class="text-muted-foreground italic text-[11px]">Non affecté</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Dernière connexion -->
+                        <td class="py-3.5 px-4 text-muted-foreground">
+                            {{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y H:i') : 'Jamais connecté' }}
+                        </td>
+
+                        <!-- Statut -->
+                        <td class="py-3.5 px-4 text-center">
+                            {% if user.active %}
+                                <span class="kt-badge kt-badge-success kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                    <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>Actif</span>
+                                </span>
+                            {% else %}
+                                <span class="kt-badge kt-badge-destructive kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                    <span class="size-1.5 rounded-full bg-red-500"></span>
+                                    <span>Désactivé</span>
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="py-3.5 px-5 text-end">
+                            <div class="flex items-center justify-end gap-1.5">
+                                {% if is_granted('USER_UPDATE') or is_granted('USER_EDIT') or is_granted('ROLE_ADMIN') %}
+                                    <a href="{{ path('admin_user_edit', {id: user.id}) }}" class="kt-btn kt-btn-ghost kt-btn-sm text-foreground hover:bg-secondary/60 inline-flex items-center gap-1 px-2.5 py-1 text-xs" title="Modifier l'utilisateur">
+                                        <i class="ki-filled ki-notepad-edit text-xs"></i>
+                                        <span>Modifier</span>
+                                    </a>
+                                {% endif %}
+
+                                {% if user.active %}
+                                    <form method="post" action="{{ path('admin_user_deactivate', {id: user.id}) }}" class="inline" onsubmit="return confirm('Confirmez-vous la désactivation de cet utilisateur ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('user_status_' ~ user.id) }}">
+                                        <button type="submit" class="kt-btn kt-btn-ghost kt-btn-sm text-destructive hover:bg-destructive/10 inline-flex items-center gap-1 px-2.5 py-1 text-xs">
+                                            <i class="ki-filled ki-cross-circle text-xs"></i>
+                                            <span>Désactiver</span>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{{ path('admin_user_activate', {id: user.id}) }}" class="inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('user_status_' ~ user.id) }}">
+                                        <button type="submit" class="kt-btn kt-btn-ghost kt-btn-sm text-emerald-600 hover:bg-emerald-50 inline-flex items-center gap-1 px-2.5 py-1 text-xs">
+                                            <i class="ki-filled ki-check-circle text-xs"></i>
+                                            <span>Activer</span>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-xs text-muted-foreground">
+                            <i class="ki-filled ki-user-cross text-2xl text-muted-foreground/60 mb-2 block"></i>
+                            Aucun compte utilisateur ne correspond à vos critères de recherche.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pied du tableau -->
+    <div class="p-4 border-t border-border/60 bg-secondary/10 flex items-center justify-between text-xs text-muted-foreground">
+        <span>Total : <strong class="text-foreground">{{ users|length }}</strong> utilisateur(s)</span>
+    </div>
+</div>
+{% endblock %}

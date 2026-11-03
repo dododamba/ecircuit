@@ -1,0 +1,60 @@
+{# 
+  Card UI Réutilisable Metronic — MCI e-Circuit Design System
+  Paramètres:
+  - title: string (titre du card)
+  - description: string (sous-titre optionnel)
+  - icon: string (code keenicon, optionnel)
+  - class: string (classes additionnelles)
+  - flush: boolean (si vrai, supprime les paddings pour un tableau)
+  - toolbar: string (actions/boutons à droite du header)
+  - footer: string (pied de carte optionnel)
+  - variant: string ('standard'|'form'|'kpi'|'data'|'info'|'workflow', optionnel)
+#}
+{% set variant_class = '' %}
+{% if variant is defined %}
+    {% if variant == 'form' %}{% set variant_class = 'kt-card-form' %}
+    {% elseif variant == 'kpi' %}{% set variant_class = 'kt-card-kpi' %}
+    {% elseif variant == 'data' %}{% set variant_class = 'kt-card-data' %}
+    {% elseif variant == 'info' %}{% set variant_class = 'kt-card-info' %}
+    {% elseif variant == 'workflow' %}{% set variant_class = 'kt-card-workflow' %}
+    {% endif %}
+{% endif %}
+
+<div class="kt-card {{ variant_class }} {{ flush|default(false) ? 'kt-card-flush' : '' }} overflow-hidden {{ class|default('') }}">
+    {% if title is defined and title %}
+        <div class="kt-card-header">
+            <div class="flex items-center gap-3 min-w-0">
+                {% if icon is defined and icon %}
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-{{ icon }}"></i>
+                    </div>
+                {% endif %}
+                <div class="flex flex-col min-w-0">
+                    <h3 class="kt-card-title truncate">
+                        {{ title }}
+                    </h3>
+                    {% if description is defined and description %}
+                        <p class="kt-card-description truncate">
+                            {{ description }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% if toolbar is defined and toolbar %}
+                <div class="kt-card-toolbar">
+                    {{ toolbar|raw }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="kt-card-content {{ flush|default(false) ? 'p-0' : '' }}">
+        {{ content|default('')|raw }}
+    </div>
+
+    {% if footer is defined and footer %}
+        <div class="kt-card-footer">
+            {{ footer|raw }}
+        </div>
+    {% endif %}
+</div>

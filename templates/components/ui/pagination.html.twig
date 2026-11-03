@@ -1,0 +1,57 @@
+{# 
+  Pagination UI Réutilisable Metronic
+  Paramètres:
+  - current_page: int (page actuelle)
+  - total_pages: int (nombre total de pages)
+  - route: nom de la route Symfony
+  - params: tableau de paramètres de requête optionnels
+#}
+{% if total_pages is defined and total_pages > 1 %}
+    {% set routeName = route|default(app.request.attributes.get('_route')) %}
+    {% set routeParams = params|default({}) %}
+
+    <div class="flex items-center justify-between px-6 py-3.5 border-t border-border/60 bg-background text-xs text-muted-foreground">
+        <div>
+            Page <span class="font-semibold text-foreground">{{ current_page }}</span> sur <span class="font-semibold text-foreground">{{ total_pages }}</span>
+        </div>
+        
+        <div class="flex items-center gap-1">
+            {# Précédent #}
+            {% if current_page > 1 %}
+                <a href="{{ path(routeName, routeParams|merge({'page': current_page - 1})) }}" class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm size-8 text-foreground hover:bg-secondary" aria-label="Page précédente">
+                    <i class="ki-filled ki-left text-xs"></i>
+                </a>
+            {% else %}
+                <span class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm size-8 text-muted-foreground/40 cursor-not-allowed">
+                    <i class="ki-filled ki-left text-xs"></i>
+                </span>
+            {% endif %}
+
+            {# Pages numérotées #}
+            {% for p in 1..total_pages %}
+                {% if p == current_page %}
+                    <span class="size-8 rounded-lg bg-primary text-primary-foreground font-semibold flex items-center justify-center text-xs">
+                        {{ p }}
+                    </span>
+                {% elseif p <= 3 or p > total_pages - 2 or (p >= current_page - 1 and p <= current_page + 1) %}
+                    <a href="{{ path(routeName, routeParams|merge({'page': p})) }}" class="size-8 rounded-lg hover:bg-secondary text-foreground font-medium flex items-center justify-center text-xs transition-colors">
+                        {{ p }}
+                    </a>
+                {% elseif p == 4 or p == total_pages - 2 %}
+                    <span class="size-8 flex items-center justify-center text-muted-foreground">&hellip;</span>
+                {% endif %}
+            {% endfor %}
+
+            {# Suivant #}
+            {% if current_page < total_pages %}
+                <a href="{{ path(routeName, routeParams|merge({'page': current_page + 1})) }}" class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm size-8 text-foreground hover:bg-secondary" aria-label="Page suivante">
+                    <i class="ki-filled ki-right text-xs"></i>
+                </a>
+            {% else %}
+                <span class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm size-8 text-muted-foreground/40 cursor-not-allowed">
+                    <i class="ki-filled ki-right text-xs"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

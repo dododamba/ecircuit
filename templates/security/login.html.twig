@@ -1,0 +1,151 @@
+{% extends 'layouts/auth.html.twig' %}
+
+{% block title %}Connexion &bull; MCI e-Circuit{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6">
+    
+    <!-- En-tête formulaire -->
+    <div class="flex flex-col">
+        <span class="sr-only">Connexion sécurisée</span>
+        <h2 class="auth-heading">
+            Connexion à votre espace
+        </h2>
+    </div>
+
+    <!-- Message d'erreur d'authentification -->
+    {% if error %}
+        <div class="kt-alert kt-alert-destructive rounded-lg border border-red-200 bg-red-50/90 p-3.5 flex items-start gap-3" role="alert" aria-live="assertive">
+            <i class="ki-filled ki-information-2 text-red-600 text-base shrink-0 mt-0.5"></i>
+            <div class="flex flex-col gap-0.5 text-xs text-red-800 leading-snug">
+                <span class="font-semibold">Échec d'authentification</span>
+                <span class="text-red-700">Adresse e-mail ou mot de passe incorrect, ou compte utilisateur inactif.</span>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Formulaire de connexion -->
+    <form method="post" action="{{ path('app_login') }}" id="login_form" class="flex flex-col gap-4">
+        
+        <!-- Champ Adresse e-mail ou identifiant -->
+        <div class="auth-form-group">
+            <label for="username" class="auth-label">
+                Adresse e-mail ou identifiant
+            </label>
+            <div class="auth-input-wrapper">
+                <i class="ki-filled ki-sms auth-input-icon"></i>
+                <input 
+                    id="username" 
+                    name="_username" 
+                    type="text" 
+                    value="{{ last_username }}" 
+                    autocomplete="username" 
+                    required 
+                    autofocus
+                    placeholder="prenom.nom@mci.gov"
+                    class="auth-input"
+                />
+            </div>
+        </div>
+
+        <!-- Champ Mot de passe -->
+        <div class="auth-form-group">
+            <div class="flex items-center justify-between">
+                <label for="password" class="auth-label">
+                    Mot de passe
+                </label>
+                <a href="{{ path('app_password_forgot') }}" class="auth-link">
+                    Mot de passe oublié ?
+                </a>
+            </div>
+            <div class="auth-input-wrapper">
+                <i class="ki-filled ki-lock auth-input-icon"></i>
+                <input 
+                    id="password" 
+                    name="_password" 
+                    type="password" 
+                    autocomplete="current-password" 
+                    required
+                    placeholder="••••••••••••"
+                    class="auth-input auth-input-password"
+                />
+                <button 
+                    type="button" 
+                    id="toggle_password_btn" 
+                    class="auth-password-toggle"
+                    aria-label="Afficher le mot de passe"
+                    title="Afficher ou masquer le mot de passe"
+                >
+                    <i id="password_eye_icon" class="ki-filled ki-eye text-base block"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Jeton CSRF -->
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}"/>
+
+        <!-- Bouton Soumission -->
+        <button 
+            type="submit" 
+            id="submit_btn" 
+            class="auth-submit-btn"
+        >
+            <span id="submit_spinner" class="hidden">
+                <i class="ki-filled ki-loading animate-spin text-sm"></i>
+            </span>
+            <span id="submit_text">Se connecter</span>
+            <i class="ki-filled ki-arrow-right text-xs"></i>
+        </button>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle affichage / masquage mot de passe
+        const toggleBtn = document.getElementById('toggle_password_btn');
+        const pwdInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('password_eye_icon');
+
+        if (toggleBtn && pwdInput && eyeIcon) {
+            toggleBtn.addEventListener('click', function() {
+                const isPassword = pwdInput.getAttribute('type') === 'password';
+                pwdInput.setAttribute('type', isPassword ? 'text' : 'password');
+                
+                if (isPassword) {
+                    eyeIcon.classList.remove('ki-eye');
+                    eyeIcon.classList.add('ki-eye-slash');
+                    toggleBtn.setAttribute('aria-label', 'Masquer le mot de passe');
+                } else {
+                    eyeIcon.classList.remove('ki-eye-slash');
+                    eyeIcon.classList.add('ki-eye');
+                    toggleBtn.setAttribute('aria-label', 'Afficher le mot de passe');
+                }
+            });
+        }
+
+        // Indicateur visuel lors de la soumission du formulaire
+        const loginForm = document.getElementById('login_form');
+        const submitBtn = document.getElementById('submit_btn');
+        const submitText = document.getElementById('submit_text');
+        const submitSpinner = document.getElementById('submit_spinner');
+
+        if (loginForm && submitBtn) {
+            loginForm.addEventListener('submit', function() {
+                setTimeout(function() {
+                    submitBtn.setAttribute('disabled', 'disabled');
+                }, 10);
+                if (submitText) {
+                    submitText.textContent = 'Connexion en cours...';
+                }
+                if (submitSpinner) {
+                    submitSpinner.classList.remove('hidden');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

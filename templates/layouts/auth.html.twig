@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="h-full" data-kt-theme="true" data-kt-theme-mode="light" dir="ltr" lang="fr">
+<head>
+    {% include 'partials/head.html.twig' %}
+    <link rel="stylesheet" href="{{ asset('assets/css/auth.css') }}"/>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="auth-page antialiased">
+
+    <div class="auth-wrapper">
+        
+        <!-- Logo & Titre de la plateforme -->
+        <div class="flex flex-col items-center text-center mb-6">
+            <img src="{{ asset('assets/images/mci-logo.webp') }}" alt="MCI" class="auth-brand-logo" />
+            <h1 class="auth-brand-title mci-brand-title">
+                MCI <span class="accent">e-Circuit</span>
+            </h1>
+        </div>
+
+        <!-- Carte centrale épurée -->
+        <main class="auth-card">
+            <!-- Messages Flashs -->
+            {% include 'partials/flashes.html.twig' %}
+
+            <!-- Corps du formulaire -->
+            {% block body %}{% endblock %}
+        </main>
+
+    </div>
+
+    <!-- Scripts Bundle -->
+    {% include 'partials/scripts.html.twig' %}
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

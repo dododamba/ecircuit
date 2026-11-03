@@ -1,0 +1,266 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Préparer un Courrier Sortant — MCI e-Circuit{% endblock %}
+{% block page_title %}Enregistrement d'un Courrier Sortant{% endblock %}
+
+{% block body %}
+<div class="max-w-4xl mx-auto flex flex-col gap-6 w-full">
+    <!-- Header navigation & Page Toolbar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <a href="{{ path('app_dashboard') }}" class="hover:text-primary transition-colors">Accueil</a>
+                <i class="ki-filled ki-right text-[10px]"></i>
+                <a href="{{ path('courrier_outgoing_list') }}" class="hover:text-primary transition-colors">Courriers Sortants</a>
+                <i class="ki-filled ki-right text-[10px]"></i>
+                <span class="text-foreground font-medium">Nouveau Courrier</span>
+            </div>
+            <h2 class="text-xl font-bold tracking-tight text-foreground">Préparation d'un Courrier Sortant Officiel</h2>
+            <p class="text-xs text-muted-foreground mt-0.5">Une référence officielle au format <span class="font-mono font-bold text-foreground">MCI-OUT-YYYY-NNNNNN</span> sera attribuée automatiquement.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ path('courrier_outgoing_list') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3.5 inline-flex items-center gap-2 text-xs font-semibold">
+                <i class="ki-filled ki-arrow-left text-xs"></i>
+                <span>Retour au registre sortant</span>
+            </a>
+        </div>
+    </div>
+
+    <form method="post" action="{{ path('courrier_outgoing_new') }}" enctype="multipart/form-data" class="flex flex-col gap-6" id="outgoing_mail_form">
+        <input type="hidden" name="_token" value="{{ csrf_token('courrier_outgoing_new') }}">
+
+        <!-- Carte Principale (Form Card) -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-send"></i>
+                    </div>
+                    <div>
+                        <h3 class="kt-card-title">Informations du Courrier Sortant</h3>
+                        <p class="kt-card-subtitle">Destinataire, objet officiel, modalités d'expédition et pièce jointe</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">Émission</span>
+            </div>
+
+            <div class="kt-card-body p-6 md:p-8 flex flex-col">
+                <!-- Section 1 : Identification & Destinataire -->
+                <div class="kt-form-section">
+                    <div class="kt-form-section-header">
+                        <i class="ki-filled ki-directbox-default text-primary text-xs"></i>
+                        <span class="kt-form-section-title">1. Identification & Destinataire</span>
+                        <div class="kt-form-section-line"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="md:col-span-2 flex flex-col gap-1.5">
+                            <label for="case_id" class="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>Dossier administratif rattaché</span>
+                                <span class="text-[11px] font-normal text-muted-foreground">Optionnel</span>
+                            </label>
+                            <select id="case_id" name="case_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                <option value="">— Courrier sortant autonome (sans dossier lié) —</option>
+                                {% for c in available_cases %}
+                                    <option value="{{ c.id }}" {{ linked_case and linked_case.id == c.id ? 'selected' : '' }}>
+                                        {{ c.reference }} — {{ c.subject|slice(0, 80) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2 flex flex-col gap-1.5">
+                            <label for="subject" class="text-xs font-semibold text-foreground">
+                                Objet du courrier sortant <span class="text-destructive font-bold ms-0.5">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="subject"
+                                name="subject"
+                                required
+                                value="{{ linked_case ? 'Réponse : ' ~ linked_case.subject : '' }}"
+                                placeholder="Ex: Notification d'agrément technique / Réponse officielle..."
+                                class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                            >
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="recipient_name" class="text-xs font-semibold text-foreground">
+                                Nom du destinataire / Fonction <span class="text-destructive font-bold ms-0.5">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="recipient_name"
+                                name="recipient_name"
+                                required
+                                value="{{ linked_case and linked_case.sender ? linked_case.sender.name : '' }}"
+                                placeholder="Nom complet ou titre du destinataire"
+                                class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                            >
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="recipient_organisation" class="text-xs font-semibold text-foreground">
+                                Organisme / Institution destinataire
+                            </label>
+                            <input
+                                type="text"
+                                id="recipient_organisation"
+                                name="recipient_organisation"
+                                value="{{ linked_case and linked_case.sender ? linked_case.sender.organisation : '' }}"
+                                placeholder="Entreprise, Ministère, Partenaire..."
+                                class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2 : Modalités d'Émission & Traitement -->
+                <div class="kt-form-section">
+                    <div class="kt-form-section-header">
+                        <i class="ki-filled ki-setting-2 text-primary text-xs"></i>
+                        <span class="kt-form-section-title">2. Modalités d'Émission & Traitement</span>
+                        <div class="kt-form-section-line"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                        <div class="flex flex-col gap-1.5">
+                            <label for="issuing_structure_id" class="text-xs font-semibold text-foreground">Structure émettrice</label>
+                            <select id="issuing_structure_id" name="issuing_structure_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                {% for struct in structures %}
+                                    <option value="{{ struct.id }}" {{ (linked_case and linked_case.currentStructure and linked_case.currentStructure.id == struct.id) or (not linked_case and app.user.organizationUnit and app.user.organizationUnit.id == struct.id) ? 'selected' : '' }}>
+                                        {{ struct.name }} ({{ struct.code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="dispatch_method" class="text-xs font-semibold text-foreground">Mode d'expédition</label>
+                            <select id="dispatch_method" name="dispatch_method" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                <option value="REMISE_OFFICIELLE">Remise officielle contre décharge</option>
+                                <option value="PORTEUR">Porteur ministériel / Cahier de transmission</option>
+                                <option value="COURRIER_POSTAL">Courrier postal / Recommandé</option>
+                                <option value="VOIE_ELECTRONIQUE">Transmission électronique officielle</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="flex flex-col gap-1.5">
+                            <label for="document_type_id" class="text-xs font-semibold text-foreground">Type de document</label>
+                            <select id="document_type_id" name="document_type_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                <option value="">— Sélectionner —</option>
+                                {% for dt in document_types %}
+                                    <option value="{{ dt.id }}">{{ dt.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="priority_id" class="text-xs font-semibold text-foreground">Priorité</label>
+                            <select id="priority_id" name="priority_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                <option value="">— Normale —</option>
+                                {% for pr in priorities %}
+                                    <option value="{{ pr.id }}">{{ pr.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="status" class="text-xs font-semibold text-foreground">Statut initial</label>
+                            <select id="status" name="status" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                                <option value="DRAFT">Brouillon (en préparation)</option>
+                                <option value="PENDING_VALIDATION">En attente de validation / signature</option>
+                                <option value="READY_TO_SEND">Prêt à expédier</option>
+                                <option value="SENT">Expédié immédiatement</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3 : Document Officiel / Pièce Jointe Signée -->
+                <div class="kt-form-section">
+                    <div class="kt-form-section-header">
+                        <i class="ki-filled ki-file-up text-primary text-xs"></i>
+                        <span class="kt-form-section-title">3. Document Officiel & Pièce Signée</span>
+                        <div class="kt-form-section-line"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <div class="mci-dropzone" id="outgoing_dropzone">
+                            <input type="file" id="main_document" name="main_document" accept=".pdf,.png,.jpg,.jpeg" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            <div class="size-11 rounded-full bg-primary/10 text-primary flex items-center justify-center pointer-events-none">
+                                <i class="ki-filled ki-file-up text-xl"></i>
+                            </div>
+                            <div class="flex flex-col items-center gap-0.5 text-center pointer-events-none" id="outgoing_file_default">
+                                <span class="text-xs font-semibold text-foreground">Glissez ou sélectionnez la pièce finale officielle</span>
+                                <span class="text-[11px] text-muted-foreground">Formats acceptés : PDF (recommandé), PNG, JPEG &bull; max 20 Mo</span>
+                            </div>
+                            <div class="hidden items-center gap-2.5 p-2 rounded-lg bg-primary/10 text-xs font-medium text-foreground pointer-events-none" id="outgoing_file_selected">
+                                <i class="ki-filled ki-document text-primary"></i>
+                                <span id="outgoing_file_name"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4 : Observations & Mentions Complémentaires -->
+                <div class="kt-form-section">
+                    <div class="kt-form-section-header">
+                        <i class="ki-filled ki-notepad text-primary text-xs"></i>
+                        <span class="kt-form-section-title">4. Observations & Ampliations</span>
+                        <div class="kt-form-section-line"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label for="observations" class="text-xs font-semibold text-foreground flex items-center justify-between">
+                            <span>Observations, ampliations ou instructions d'expédition</span>
+                            <span class="text-[11px] font-normal text-muted-foreground">Optionnel</span>
+                        </label>
+                        <textarea id="observations" name="observations" rows="3" placeholder="Ampliations hiérarchiques, références de bordereau de transmission ou instructions spécifiques..." class="kt-textarea w-full text-xs rounded-lg border border-border bg-background leading-relaxed"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-12 border-t border-border/40 mt-2">
+            <a href="{{ path('courrier_outgoing_list') }}" class="kt-btn kt-btn-outline kt-btn-md px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-xs"></i>
+                <span>Annuler</span>
+            </a>
+            <button type="submit" class="kt-btn kt-btn-primary kt-btn-md px-7 py-2.5 shadow-sm font-semibold inline-flex items-center gap-2 text-xs">
+                <i class="ki-filled ki-check text-xs"></i>
+                <span>Enregistrer le courrier sortant</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('main_document');
+    const defaultView = document.getElementById('outgoing_file_default');
+    const selectedView = document.getElementById('outgoing_file_selected');
+    const nameSpan = document.getElementById('outgoing_file_name');
+
+    if (input) {
+        input.addEventListener('change', function() {
+            if (input.files && input.files.length > 0) {
+                nameSpan.textContent = input.files[0].name;
+                defaultView.classList.add('hidden');
+                selectedView.classList.remove('hidden');
+                selectedView.classList.add('flex');
+            } else {
+                defaultView.classList.remove('hidden');
+                selectedView.classList.add('hidden');
+                selectedView.classList.remove('flex');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

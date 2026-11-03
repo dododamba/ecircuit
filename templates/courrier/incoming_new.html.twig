@@ -1,0 +1,403 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Enregistrer un Courrier Entrant — MCI e-Circuit{% endblock %}
+{% block page_title %}Enregistrement Courrier Entrant{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+
+    <!-- Header navigation & Page Toolbar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <a href="{{ path('app_dashboard') }}" class="hover:text-primary transition-colors">Accueil</a>
+                <i class="ki-filled ki-right text-[10px]"></i>
+                <a href="{{ path('courrier_incoming_list') }}" class="hover:text-primary transition-colors">Courriers Entrants</a>
+                <i class="ki-filled ki-right text-[10px]"></i>
+                <span class="text-foreground font-medium">Nouvel Enregistrement</span>
+            </div>
+            <h2 class="text-xl font-bold tracking-tight text-foreground">Nouvel Enregistrement de Courrier</h2>
+            <p class="text-xs text-muted-foreground mt-0.5">Saisie officielle, attribution de la référence MCI et ouverture automatique du dossier administratif.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ path('courrier_incoming_list') }}" class="kt-btn kt-btn-outline kt-btn-sm py-2 px-3.5 inline-flex items-center gap-2 text-xs font-semibold">
+                <i class="ki-filled ki-arrow-left text-xs"></i>
+                <span>Retour au registre</span>
+            </a>
+        </div>
+    </div>
+
+    <form method="post" action="{{ path('courrier_incoming_new') }}" enctype="multipart/form-data" class="flex flex-col gap-6" id="incoming_mail_form">
+        <input type="hidden" name="_token" value="{{ csrf_token('courrier_incoming_new') }}">
+
+        <!-- Bloc 1 : Informations de l'expéditeur -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-user"></i>
+                    </div>
+                    <div>
+                        <h3 class="kt-card-title">Identité de l'Expéditeur</h3>
+                        <p class="kt-card-subtitle">Personne physique, administration ou entité morale émettrice</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">Émetteur</span>
+            </div>
+
+            <div class="p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Type d'expéditeur -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="sender_type" class="text-xs font-semibold text-foreground">
+                        Qualité de l'émetteur <span class="text-destructive font-bold ms-0.5">*</span>
+                    </label>
+                    <select id="sender_type" name="sender_type" required class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                        {% for st in sender_types %}
+                            <option value="{{ st.value }}">{{ st.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nom de l'expéditeur -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2">
+                    <label for="sender_name" class="text-xs font-semibold text-foreground">
+                        Nom complet / Signataire / Contact <span class="text-destructive font-bold ms-0.5">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="sender_name" 
+                        name="sender_name" 
+                        required 
+                        placeholder="ex: M. MAHAMAT Idriss / Société SODELAC" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Organisation / Entité -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="sender_organisation" class="text-xs font-semibold text-foreground">
+                        Ministère / Entreprise / Institution
+                    </label>
+                    <input 
+                        type="text" 
+                        id="sender_organisation" 
+                        name="sender_organisation" 
+                        placeholder="ex: Ministère des Finances / CCI Tchad" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Téléphone -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="sender_phone" class="text-xs font-semibold text-foreground">
+                        Téléphone de contact
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="sender_phone" 
+                        name="sender_phone" 
+                        placeholder="ex: +235 66 00 00 00" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Email -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="sender_email" class="text-xs font-semibold text-foreground">
+                        Adresse e-mail
+                    </label>
+                    <input 
+                        type="email" 
+                        id="sender_email" 
+                        name="sender_email" 
+                        placeholder="contact@organisation.td" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Adresse postale / Localisation -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+                    <label for="sender_address" class="text-xs font-semibold text-foreground">
+                        Adresse géographique / Boîte postale
+                    </label>
+                    <input 
+                        type="text" 
+                        id="sender_address" 
+                        name="sender_address" 
+                        placeholder="ex: N'Djamena, Quartier Bololo, Avenue Charles de Gaulle, BP 123" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Bloc 2 : Métadonnées du courrier & du dossier -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-file-sheet"></i>
+                    </div>
+                    <div>
+                        <h3 class="kt-card-title">Caractéristiques du Courrier & Affectation</h3>
+                        <p class="kt-card-subtitle">Canal de réception, objet institutionnel et priorité de traitement</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">Routage</span>
+            </div>
+
+            <div class="p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Canal d'entrée -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="entry_channel" class="text-xs font-semibold text-foreground">
+                        Canal d'entrée institutionnel <span class="text-destructive font-bold ms-0.5">*</span>
+                    </label>
+                    <select id="entry_channel" name="entry_channel" required class="kt-select w-full text-xs rounded-lg border border-border bg-background font-medium">
+                        {% for ch in channels %}
+                            <option value="{{ ch.value }}">{{ ch.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Date & heure de réception -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="received_at" class="text-xs font-semibold text-foreground">
+                        Date & heure d'arrivée <span class="text-destructive font-bold ms-0.5">*</span>
+                    </label>
+                    <input 
+                        type="datetime-local" 
+                        id="received_at" 
+                        name="received_at" 
+                        required 
+                        value="{{ "now"|date('Y-m-d\\TH:i') }}" 
+                        class="kt-input w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Degré d'urgence / Priorité -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="priority_id" class="text-xs font-semibold text-foreground">
+                        Niveau de priorité / Urgence
+                    </label>
+                    <select id="priority_id" name="priority_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                        {% for p in priorities %}
+                            <option value="{{ p.id }}" {{ p.code == 'NORMALE' ? 'selected' : '' }}>
+                                {{ p.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Type de document -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="document_type_id" class="text-xs font-semibold text-foreground">
+                        Nature du document
+                    </label>
+                    <select id="document_type_id" name="document_type_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                        <option value="">-- Sélectionner la nature --</option>
+                        {% for dt in document_types %}
+                            <option value="{{ dt.id }}">{{ dt.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Type de flux -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="mail_type_id" class="text-xs font-semibold text-foreground">
+                        Type de flux
+                    </label>
+                    <select id="mail_type_id" name="mail_type_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                        {% for mt in mail_types %}
+                            <option value="{{ mt.id }}" {{ mt.code == 'COURRIER_ENTRANT' ? 'selected' : '' }}>
+                                {{ mt.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Référence d'origine de l'expéditeur -->
+                <div class="flex flex-col gap-1.5">
+                    <label for="sender_reference" class="text-xs font-semibold text-foreground">
+                        Réf. d'origine de l'expéditeur
+                    </label>
+                    <input 
+                        type="text" 
+                        id="sender_reference" 
+                        name="sender_reference" 
+                        placeholder="ex: N° 1245/MB/DGI" 
+                        class="kt-input w-full text-xs font-mono rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <!-- Structure d'affectation initiale -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+                    <label for="initial_structure_id" class="text-xs font-semibold text-foreground">
+                        Structure d'affectation initiale / Direction destinataire
+                    </label>
+                    <select id="initial_structure_id" name="initial_structure_id" class="kt-select w-full text-xs rounded-lg border border-border bg-background">
+                        <option value="">-- Affectation automatique par défaut selon canal d'entrée --</option>
+                        {% for s in structures %}
+                            <option value="{{ s.id }}">{{ s.hierarchyPath }} [{{ s.type.label }}]</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Objet détaillé -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+                    <label for="subject" class="text-xs font-semibold text-foreground">
+                        Objet détaillé du courrier <span class="text-destructive font-bold ms-0.5">*</span>
+                    </label>
+                    <textarea 
+                        id="subject" 
+                        name="subject" 
+                        required 
+                        rows="3" 
+                        placeholder="Précisez l'objet exhaustif de la correspondance reçue..." 
+                        class="kt-textarea w-full text-xs rounded-lg border border-border bg-background leading-relaxed"
+                    ></textarea>
+                </div>
+
+                <!-- Observations -->
+                <div class="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
+                    <label for="observations" class="text-xs font-semibold text-foreground">
+                        Observations particulières / Mentions manuscrites
+                    </label>
+                    <textarea 
+                        id="observations" 
+                        name="observations" 
+                        rows="2" 
+                        placeholder="Mentions particulières (ex: remis en main propre, sous pli confidentiel, etc.)..." 
+                        class="kt-textarea w-full text-xs rounded-lg border border-border bg-background leading-relaxed"
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bloc 3 : Numérisation & Pièce jointe principale -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-document"></i>
+                    </div>
+                    <div>
+                        <h3 class="kt-card-title">Numérisation & Pièce Jointe Principale</h3>
+                        <p class="kt-card-subtitle">Document scanné officiel accompagnant l'enregistrement</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20">Fichier</span>
+            </div>
+
+            <div class="p-6 md:p-8 flex flex-col gap-4">
+                <!-- Zone de dépôt harmonisée -->
+                <div class="mci-dropzone relative flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-slate-300 hover:border-primary/60 bg-slate-50/50 rounded-xl transition-all" id="dropzone_container">
+                    <input 
+                        type="file" 
+                        id="main_document" 
+                        name="main_document" 
+                        accept=".pdf,application/pdf,image/png,image/jpeg" 
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        title="Sélectionner ou glisser un fichier"
+                    >
+                    
+                    <div class="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center pointer-events-none transition-transform" id="dropzone_icon">
+                        <i class="ki-filled ki-file-up text-2xl"></i>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-1 text-center pointer-events-none" id="dropzone_default_view">
+                        <span class="text-xs font-bold text-foreground">
+                            Glissez-déposez le document officiel ou <span class="text-primary underline">parcourez vos fichiers</span>
+                        </span>
+                        <span class="text-[11px] text-muted-foreground">
+                            Formats acceptés : PDF (recommandé pour archivage légal), PNG, JPEG &bull; Taille maximale : 20 Mo
+                        </span>
+                    </div>
+
+                    <!-- Vue fichier sélectionné -->
+                    <div class="hidden items-center gap-3 w-full max-w-md p-3 rounded-lg border border-primary/20 bg-primary/5 pointer-events-none" id="dropzone_file_preview">
+                        <div class="size-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                            <i class="ki-filled ki-document text-base"></i>
+                        </div>
+                        <div class="flex flex-col text-start min-w-0 grow">
+                            <span class="text-xs font-semibold text-foreground truncate" id="file_name_display">document.pdf</span>
+                            <span class="text-[10px] text-muted-foreground" id="file_size_display">1.2 Mo</span>
+                        </div>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-success/15 text-success">
+                            Prêt
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <i class="ki-filled ki-shield-check text-xs text-success"></i>
+                    <span>Le document numérisé est automatiquement scellé, horodaté et rattaché au dossier officiel MCI.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action institutionnels avec dégagement suffisant -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-12 border-t border-border/40 mt-2">
+            <a href="{{ path('courrier_incoming_list') }}" class="kt-btn kt-btn-outline kt-btn-md px-5 py-2.5 inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                <i class="ki-filled ki-cross text-xs"></i>
+                <span>Annuler et retourner au registre</span>
+            </a>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-md px-7 py-2.5 shadow-sm font-semibold inline-flex items-center gap-2.5 text-xs">
+                    <i class="ki-filled ki-check-circle text-sm"></i>
+                    <span>Enregistrer & Générer la Fiche Officielle</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('main_document');
+    const container = document.getElementById('dropzone_container');
+    const defaultView = document.getElementById('dropzone_default_view');
+    const previewView = document.getElementById('dropzone_file_preview');
+    const fileNameSpan = document.getElementById('file_name_display');
+    const fileSizeSpan = document.getElementById('file_size_display');
+    const dropzoneIcon = document.getElementById('dropzone_icon');
+
+    if (!fileInput || !container) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        container.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        container.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.remove('dragover');
+        });
+    });
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+            fileNameSpan.textContent = file.name;
+            fileSizeSpan.textContent = `${sizeInMb} Mo — Fichier sélectionné`;
+            defaultView.classList.add('hidden');
+            previewView.classList.remove('hidden');
+            previewView.classList.add('flex');
+            dropzoneIcon.classList.add('text-success');
+        } else {
+            defaultView.classList.remove('hidden');
+            previewView.classList.add('hidden');
+            previewView.classList.remove('flex');
+            dropzoneIcon.classList.remove('text-success');
+        }
+    });
+});
+</script>
+{% endblock %}

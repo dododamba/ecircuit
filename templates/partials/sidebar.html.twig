@@ -1,0 +1,235 @@
+{% set currentRoute = app.request.attributes.get('_route')|default('') %}
+
+<!-- Sidebar Metronic MCI e-Circuit -->
+<div class="kt-sidebar bg-background border-e border-e-border fixed top-0 bottom-0 start-0 z-20 hidden lg:flex flex-col items-stretch shrink-0 [--kt-drawer-enable:true] lg:[--kt-drawer-enable:false]" data-kt-drawer="true" data-kt-drawer-class="kt-drawer kt-drawer-start top-0 bottom-0" id="sidebar">
+    
+    <!-- Sidebar Header (Logo) -->
+    <div class="kt-sidebar-header hidden lg:flex items-center relative justify-between px-4 lg:px-6 shrink-0 h-[70px] border-b border-border/40" id="sidebar_header">
+        <a class="flex items-center gap-3 overflow-hidden" href="{{ path('app_dashboard') }}">
+            <img class="size-10 object-contain shrink-0" src="{{ asset('assets/images/mci-logo.webp') }}" alt="Armoiries MCI"/>
+            <div class="flex flex-col overflow-hidden leading-tight">
+                <span class="text-sm font-bold tracking-tight text-foreground mci-brand-title truncate">
+                    MCI <span class="text-primary font-extrabold">e-Circuit</span>
+                </span>
+                <span class="text-[10px] text-muted-foreground truncate uppercase font-medium">
+                    Commerce & Industrie
+                </span>
+            </div>
+        </a>
+        <button class="kt-btn kt-btn-outline kt-btn-icon size-[28px] absolute start-full top-2/4 -translate-x-2/4 -translate-y-2/4 shadow-xs bg-background" data-kt-toggle="body" data-kt-toggle-class="kt-sidebar-collapse" id="sidebar_toggle" title="Réduire le menu">
+            <i class="ki-filled ki-black-left-line kt-toggle-active:rotate-180 transition-all duration-300 text-xs"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar Content -->
+    <div class="kt-sidebar-content flex grow shrink-0 py-4 pe-2" id="sidebar_content">
+        <div class="kt-scrollable-y-hover grow shrink-0 flex ps-3 lg:ps-5 pe-2" data-kt-scrollable="true" data-kt-scrollable-dependencies="#sidebar_header" data-kt-scrollable-height="auto" data-kt-scrollable-offset="0px" data-kt-scrollable-wrappers="#sidebar_content" id="sidebar_scrollable">
+            
+            <div class="kt-menu flex flex-col grow gap-1.5" data-kt-menu="true" id="sidebar_menu">
+                
+                <!-- Tableau de bord -->
+                <div class="kt-menu-item {{ currentRoute == 'app_dashboard' ? 'active' : '' }}">
+                    <a class="kt-menu-link flex items-center grow gap-2.5 px-3 py-2.5 rounded-lg border border-transparent {{ currentRoute == 'app_dashboard' ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-secondary/60' }}" href="{{ path('app_dashboard') }}">
+                        <span class="kt-menu-icon text-muted-foreground {{ currentRoute == 'app_dashboard' ? '!text-primary' : '' }} w-5">
+                            <i class="ki-filled ki-element-11 text-lg"></i>
+                        </span>
+                        <span class="kt-menu-title text-sm font-medium">Tableau de bord</span>
+                    </a>
+                </div>
+
+                <!-- SECTION COURRIERS -->
+                <div class="kt-menu-item pt-3 pb-1">
+                    <span class="kt-menu-heading uppercase text-[11px] font-bold text-muted-foreground tracking-wider px-3">
+                        Courrier
+                    </span>
+                </div>
+
+                <div class="kt-menu-item {{ currentRoute starts with 'courrier_' ? 'show' : '' }}" data-kt-menu-item-toggle="accordion" data-kt-menu-item-trigger="click">
+                    <div class="kt-menu-link flex items-center grow cursor-pointer gap-2.5 px-3 py-2 rounded-lg border border-transparent hover:bg-secondary/60">
+                        <span class="kt-menu-icon text-muted-foreground w-5">
+                            <i class="ki-filled ki-sms text-lg"></i>
+                        </span>
+                        <span class="kt-menu-title text-sm font-medium text-foreground">Gestion Courrier</span>
+                        <span class="kt-menu-arrow text-muted-foreground ms-auto">
+                            <i class="ki-filled ki-down text-xs"></i>
+                        </span>
+                    </div>
+                    <div class="kt-menu-accordion gap-1 ps-3 border-s border-border ms-5 my-1">
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'courrier_incoming_list' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('courrier_incoming_list') }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'courrier_incoming_list' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Registre Courrier Entrant</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'courrier_incoming_new' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('courrier_incoming_new') }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'courrier_incoming_new' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Nouvel enregistrement</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'courrier_outgoing_list' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('courrier_outgoing_list') }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'courrier_outgoing_list' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Registre Courrier Sortant</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'courrier_outgoing_new' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('courrier_outgoing_new') }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'courrier_outgoing_new' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Préparer un courrier sortant</span>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION DOSSIERS -->
+                <div class="kt-menu-item pt-3 pb-1">
+                    <span class="kt-menu-heading uppercase text-[11px] font-bold text-muted-foreground tracking-wider px-3">
+                        Dossiers
+                    </span>
+                </div>
+
+                <div class="kt-menu-item {{ currentRoute starts with 'dossier_' ? 'show' : '' }}" data-kt-menu-item-toggle="accordion" data-kt-menu-item-trigger="click">
+                    <div class="kt-menu-link flex items-center grow cursor-pointer gap-2.5 px-3 py-2 rounded-lg border border-transparent hover:bg-secondary/60">
+                        <span class="kt-menu-icon text-muted-foreground w-5">
+                            <i class="ki-filled ki-folder text-lg"></i>
+                        </span>
+                        <span class="kt-menu-title text-sm font-medium text-foreground">Gestion Dossiers</span>
+                        <span class="kt-menu-arrow text-muted-foreground ms-auto">
+                            <i class="ki-filled ki-down text-xs"></i>
+                        </span>
+                    </div>
+                    <div class="kt-menu-accordion gap-1 ps-3 border-s border-border ms-5 my-1">
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'dossier_list' and not app.request.query.get('status') ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('dossier_list') }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'dossier_list' and not app.request.query.get('status') ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Registre des dossiers</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'dossier_list' and app.request.query.get('status') == 'IN_ANALYSIS' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('dossier_list', {status: 'IN_ANALYSIS'}) }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'dossier_list' and app.request.query.get('status') == 'IN_ANALYSIS' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>En cours d'instruction</span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="kt-menu-item">
+                            <a class="kt-menu-link flex items-center justify-between px-3 py-2 rounded-md text-xs font-normal {{ currentRoute == 'dossier_list' and app.request.query.get('status') == 'ARCHIVED' ? 'text-primary font-semibold bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-secondary/40' }}" href="{{ path('dossier_list', {status: 'ARCHIVED'}) }}">
+                                <span class="flex items-center gap-2">
+                                    <span class="size-1.5 rounded-full {{ currentRoute == 'dossier_list' and app.request.query.get('status') == 'ARCHIVED' ? 'bg-primary' : 'bg-muted-foreground/60' }}"></span>
+                                    <span>Archives</span>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECHERCHE MULTICRITÈRE -->
+                <div class="kt-menu-item {{ currentRoute == 'search_index' ? 'active' : '' }}">
+                    <a class="kt-menu-link flex items-center grow gap-2.5 px-3 py-2.5 rounded-lg border border-transparent {{ currentRoute == 'search_index' ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-secondary/60' }}" href="{{ path('search_index') }}">
+                        <span class="kt-menu-icon text-muted-foreground {{ currentRoute == 'search_index' ? '!text-primary' : '' }} w-5">
+                            <i class="ki-filled ki-magnifier text-lg"></i>
+                        </span>
+                        <span class="kt-menu-title text-sm font-medium">Recherche générale</span>
+                    </a>
+                </div>
+
+                <!-- SECTION ORGANISATION & ADMINISTRATION -->
+                {% if is_granted('ROLE_ADMINISTRATEUR') or is_granted('USER_VIEW') or is_granted('STRUCTURE_VIEW') or is_granted('AUDIT_VIEW') %}
+                    <div class="kt-menu-item pt-3 pb-1">
+                        <span class="kt-menu-heading uppercase text-[11px] font-bold text-muted-foreground tracking-wider px-3">
+                            Administration
+                        </span>
+                    </div>
+
+                    <div class="kt-menu-item {{ currentRoute starts with 'admin_' ? 'show' : '' }}" data-kt-menu-item-toggle="accordion" data-kt-menu-item-trigger="click">
+                        <div class="kt-menu-link flex items-center grow cursor-pointer gap-2.5 px-3 py-2 rounded-lg border border-transparent hover:bg-secondary/60">
+                            <span class="kt-menu-icon text-muted-foreground w-5">
+                                <i class="ki-filled ki-setting-2 text-lg"></i>
+                            </span>
+                            <span class="kt-menu-title text-sm font-medium text-foreground">Paramètres & IAM</span>
+                            <span class="kt-menu-arrow text-muted-foreground ms-auto">
+                                <i class="ki-filled ki-down text-xs"></i>
+                            </span>
+                        </div>
+                        <div class="kt-menu-accordion gap-1 ps-3 border-s border-border ms-5 my-1">
+                            {% if is_granted('ROLE_ADMINISTRATEUR') or is_granted('USER_VIEW') %}
+                            <div class="kt-menu-item">
+                                <a class="kt-menu-link flex items-center gap-2 px-3 py-2 rounded-md text-xs font-normal text-foreground hover:text-primary hover:bg-secondary/40 {{ currentRoute == 'admin_users' ? 'text-primary font-semibold bg-primary/10' : '' }}" href="{{ path('admin_users') }}">
+                                    <span class="size-1.5 rounded-full bg-muted-foreground/60 {{ currentRoute == 'admin_users' ? '!bg-primary' : '' }}"></span>
+                                    <span>Utilisateurs</span>
+                                </a>
+                            </div>
+                            <div class="kt-menu-item">
+                                <a class="kt-menu-link flex items-center gap-2 px-3 py-2 rounded-md text-xs font-normal text-foreground hover:text-primary hover:bg-secondary/40 {{ currentRoute == 'admin_roles' ? 'text-primary font-semibold bg-primary/10' : '' }}" href="{{ path('admin_roles') }}">
+                                    <span class="size-1.5 rounded-full bg-muted-foreground/60 {{ currentRoute == 'admin_roles' ? '!bg-primary' : '' }}"></span>
+                                    <span>Rôles & Permissions</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if is_granted('ROLE_ADMINISTRATEUR') or is_granted('STRUCTURE_VIEW') %}
+                            <div class="kt-menu-item">
+                                <a class="kt-menu-link flex items-center gap-2 px-3 py-2 rounded-md text-xs font-normal text-foreground hover:text-primary hover:bg-secondary/40 {{ currentRoute == 'admin_structures' ? 'text-primary font-semibold bg-primary/10' : '' }}" href="{{ path('admin_structures') }}">
+                                    <span class="size-1.5 rounded-full bg-muted-foreground/60 {{ currentRoute == 'admin_structures' ? '!bg-primary' : '' }}"></span>
+                                    <span>Organisation & Structures</span>
+                                </a>
+                            </div>
+                            <div class="kt-menu-item">
+                                <a class="kt-menu-link flex items-center gap-2 px-3 py-2 rounded-md text-xs font-normal text-foreground hover:text-primary hover:bg-secondary/40 {{ currentRoute == 'admin_references' ? 'text-primary font-semibold bg-primary/10' : '' }}" href="{{ path('admin_references') }}">
+                                    <span class="size-1.5 rounded-full bg-muted-foreground/60 {{ currentRoute == 'admin_references' ? '!bg-primary' : '' }}"></span>
+                                    <span>Référentiels & Circuits</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if is_granted('ROLE_ADMINISTRATEUR') or is_granted('AUDIT_VIEW') %}
+                            <div class="kt-menu-item">
+                                {% set isAuditActive = currentRoute in ['admin_audit_logs', 'admin_audit_index', 'admin_audit_log_show', 'admin_audit_show'] %}
+                                <a class="kt-menu-link flex items-center gap-2 px-3 py-2 rounded-md text-xs font-normal text-foreground hover:text-primary hover:bg-secondary/40 {{ isAuditActive ? 'text-primary font-semibold bg-primary/10' : '' }}" href="{{ path('admin_audit_logs') }}">
+                                    <span class="size-1.5 rounded-full bg-muted-foreground/60 {{ isAuditActive ? '!bg-primary' : '' }}"></span>
+                                    <span>Audit & Journal</span>
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Footer (Utilisateur connecté) -->
+    <div class="kt-sidebar-footer p-4 border-t border-border/40 shrink-0 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="size-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0 uppercase border border-primary/20">
+                {{ app.user ? (app.user.firstName|first ~ app.user.lastName|first) : 'MC' }}
+            </div>
+            <div class="flex flex-col overflow-hidden leading-tight">
+                <span class="text-xs font-semibold text-foreground truncate">
+                    {{ app.user ? app.user.fullName : 'Utilisateur' }}
+                </span>
+                <span class="text-[10px] text-muted-foreground truncate">
+                    {{ app.user and app.user.organizationUnit ? app.user.organizationUnit.name : 'Structure' }}
+                </span>
+            </div>
+        </div>
+        <form method="post" action="{{ path('app_logout') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('logout') }}">
+            <button type="submit" class="kt-btn kt-btn-icon kt-btn-ghost kt-btn-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Se déconnecter">
+                <i class="ki-filled ki-exit-right text-base"></i>
+            </button>
+        </form>
+    </div>
+
+</div>

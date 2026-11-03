@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html class="h-full" data-kt-theme="true" data-kt-theme-mode="light" dir="ltr" lang="fr">
+<head>
+    {% include 'partials/head.html.twig' %}
+    <title>Page Non Trouvée (404) &bull; MCI e-Circuit</title>
+</head>
+<body class="antialiased flex min-h-screen bg-slate-50 text-foreground items-center justify-center p-4">
+    <div class="max-w-lg w-full bg-background border border-border/80 shadow-md rounded-2xl p-8 text-center flex flex-col items-center">
+        <!-- Logo / Armoiries -->
+        <img src="{{ asset('assets/images/mci-logo.webp') }}" alt="MCI" class="size-16 object-contain mb-4"/>
+        
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-3">
+            <i class="ki-filled ki-information-2 text-sm"></i>
+            <span>Erreur 404 &bull; Ressource Introuvable</span>
+        </div>
+
+        <h1 class="text-2xl font-extrabold text-foreground tracking-tight mb-2">
+            Page ou Document Introuvable
+        </h1>
+
+        <p class="text-xs text-muted-foreground leading-relaxed mb-6">
+            Le dossier, le courrier ou la page demandée n'existe pas ou a été déplacé. Vérifiez la référence administrative saisie dans le moteur de recherche ministériel.
+        </p>
+
+        <div class="w-full p-3 rounded-lg bg-secondary/30 border border-border/60 text-start text-[11px] text-muted-foreground mb-6 space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="font-semibold text-foreground">Code d'erreur :</span>
+                <span class="font-mono">HTTP 404 NOT FOUND</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="font-semibold text-foreground">Conseil :</span>
+                <span>Utilisez la recherche multicritère par référence unique</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full">
+            <a href="{{ path('app_dashboard') }}" class="kt-btn kt-btn-primary kt-btn-sm w-full justify-center">
+                <i class="ki-filled ki-home text-xs me-1"></i>
+                <span>Tableau de bord</span>
+            </a>
+            <a href="{{ path('search_index') }}" class="kt-btn kt-btn-outline kt-btn-sm w-full justify-center">
+                <i class="ki-filled ki-magnifier text-xs me-1"></i>
+                <span>Recherche</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+

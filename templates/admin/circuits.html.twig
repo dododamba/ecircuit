@@ -1,0 +1,104 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Circuits Administratifs &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Circuits Administratifs de Traitement{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_circuits')},
+    {'label': 'Circuits administratifs'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Circuits Administratifs & Workflow
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Paramétrage des chaînes d'instruction et étapes ordonnées de traitement des courriers et dossiers.
+        </p>
+    </div>
+    {% if is_granted('CIRCUIT_CREATE') or is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_circuit_new') }}" class="kt-btn kt-btn-primary kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-plus text-xs"></i>
+            <span>Nouveau circuit</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Liste des circuits -->
+<div class="grid grid-cols-1 gap-4">
+    {% for circuit in circuits %}
+        <div class="kt-card bg-background border border-border shadow-xs rounded-xl p-5 hover:border-primary/40 transition-all">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border/50">
+                <div class="flex items-center gap-3">
+                    <div class="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <i class="ki-filled ki-route text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-base font-bold text-foreground">{{ circuit.label }}</span>
+                            <code class="text-[11px] font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+                                {{ circuit.code }}
+                            </code>
+                            {% if circuit.active %}
+                                <span class="kt-badge kt-badge-success kt-badge-outline kt-badge-sm px-2 py-0.5 rounded-full text-[10px] font-semibold">Actif</span>
+                            {% else %}
+                                <span class="kt-badge kt-badge-destructive kt-badge-outline kt-badge-sm px-2 py-0.5 rounded-full text-[10px] font-semibold">Inactif</span>
+                            {% endif %}
+                        </div>
+                        {% if circuit.description %}
+                            <p class="text-xs text-muted-foreground mt-1">{{ circuit.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 self-end lg:self-center">
+                    <a href="{{ path('admin_circuit_edit', {id: circuit.id}) }}" class="kt-btn kt-btn-outline kt-btn-sm px-3 py-1.5 text-xs inline-flex items-center gap-1.5">
+                        <i class="ki-filled ki-pencil text-xs"></i>
+                        <span>Configurer</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Étapes du circuit -->
+            <div class="pt-4">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
+                    Étapes séquentielles de traitement ({{ circuit.steps|length }}) :
+                </span>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% for step in circuit.steps %}
+                        <div class="flex items-center gap-2 bg-secondary/30 border border-border/60 rounded-lg px-3 py-1.5 text-xs">
+                            <span class="size-5 rounded-full bg-primary/20 text-primary font-bold text-[10px] flex items-center justify-center">
+                                {{ step.position }}
+                            </span>
+                            <span class="font-medium text-foreground">{{ step.organizationUnit.name }}</span>
+                            {% if step.label %}
+                                <span class="text-[10px] text-muted-foreground">({{ step.label }})</span>
+                            {% endif %}
+                            {% if step.standardDurationHours %}
+                                <span class="text-[10px] font-mono text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 rounded">
+                                    {{ step.standardDurationHours }}h
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if not loop.last %}
+                            <i class="ki-filled ki-arrow-right text-xs text-muted-foreground"></i>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-xs text-muted-foreground italic">Aucune étape définie pour ce circuit.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="kt-card bg-background border border-border p-12 text-center text-muted-foreground rounded-xl">
+            <i class="ki-filled ki-route text-3xl mb-2"></i>
+            <p>Aucun circuit administratif configuré.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

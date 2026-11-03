@@ -1,0 +1,205 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Référentiels & Circuits &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}Référentiels & Circuits Administratifs{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_users')},
+    {'label': 'Référentiels Métier', 'url': path('admin_references')},
+    {'label': current_category.label}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête de page -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            Données de référence & Nomenclatures ministérielles
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Paramétrage des statuts, types de courriers, priorités, motifs de transmission et circuits types.
+        </p>
+    </div>
+    {% if is_granted('REFERENCE_CREATE') or is_granted('ROLE_ADMIN') %}
+        <a href="{{ path('admin_reference_new', {'category': current_category.slug}) }}" class="kt-btn kt-btn-primary kt-btn-sm inline-flex items-center gap-1.5 py-2 px-3.5">
+            <i class="ki-filled ki-plus text-xs"></i>
+            <span>Ajouter une entrée</span>
+        </a>
+    {% endif %}
+</div>
+
+<!-- Navigation par Onglets des Catégories Metronic -->
+<div class="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-border/60">
+    {% for cat in categories %}
+        {% set isActive = cat.value == current_category.value %}
+        <a 
+            href="{{ path('admin_references', {'category': cat.slug}) }}" 
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all {{ isActive ? 'bg-primary text-primary-foreground shadow-xs' : 'bg-background border border-border text-foreground hover:bg-secondary/60' }}"
+        >
+            {% set catIcon = cat.value == 'DOCUMENT_TYPE' ? 'file' : (cat.value == 'MAIL_TYPE' ? 'sms' : (cat.value == 'DOSSIER_STATUS' ? 'flag' : (cat.value == 'PRIORITY' ? 'warning' : (cat.value == 'TRANSMISSION_REASON' ? 'send' : 'element-11')))) %}
+            <i class="ki-filled ki-{{ catIcon }} text-sm {{ isActive ? 'text-primary-foreground' : 'text-primary' }}"></i>
+            <span>{{ cat.label }}</span>
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Table des Référentiels Metronic -->
+<div class="kt-card kt-card-data overflow-hidden mb-8">
+    <div class="kt-card-header px-6 py-4 border-b border-border/60 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+            <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <i class="ki-filled ki-element-plus text-base"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-foreground">{{ current_category.label }}</h3>
+                <span class="text-[10px] text-muted-foreground font-mono">CATEGORY_{{ current_category.value }}</span>
+            </div>
+        </div>
+        <span class="kt-badge kt-badge-outline kt-badge-sm px-2.5 py-0.5 rounded-full text-[10px] font-semibold">
+            {{ items|length }} entrée(s)
+        </span>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="kt-table w-full text-start text-xs border-collapse">
+            <thead>
+                <tr class="border-b border-border/60 bg-secondary/30 text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                    <th class="py-3 px-6 text-start">Ordre</th>
+                    <th class="py-3 px-4 text-start">Code</th>
+                    <th class="py-3 px-4 text-start">Libellé officiel</th>
+                    <th class="py-3 px-4 text-start">Description & Usage</th>
+                    <th class="py-3 px-4 text-center">Rendu UI / Couleur</th>
+                    <th class="py-3 px-4 text-center">Statut</th>
+                    <th class="py-3 px-6 text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border/40">
+                {% for item in items %}
+                    <tr class="hover:bg-secondary/20 transition-colors">
+                        <td class="py-3 px-6 font-mono text-muted-foreground">
+                            {{ item.displayOrder }}
+                        </td>
+                        <td class="py-3 px-4">
+                            <code class="text-[11px] font-mono font-medium text-foreground bg-secondary/60 px-1.5 py-0.5 rounded border border-border/40">
+                                {{ item.code }}
+                            </code>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-foreground text-sm">
+                            {{ item.label }}
+                        </td>
+                        <td class="py-3 px-4 text-muted-foreground text-xs max-w-xs truncate">
+                            {{ item.description|default('—') }}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if item.uiColor %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border" style="background-color: {{ item.uiColor }}15; color: {{ item.uiColor }}; border-color: {{ item.uiColor }}40;">
+                                    {{ item.label }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted-foreground text-[11px] italic">Défaut</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if item.active %}
+                                <span class="kt-badge kt-badge-success kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                    <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>Actif</span>
+                                </span>
+                            {% else %}
+                                <span class="kt-badge kt-badge-destructive kt-badge-outline kt-badge-sm inline-flex items-center gap-1 font-semibold rounded-full px-2 py-0.5 text-[10px]">
+                                    <span class="size-1.5 rounded-full bg-red-500"></span>
+                                    <span>Inactif</span>
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-6 text-end">
+                            <div class="flex items-center justify-end gap-1.5">
+                                {% if is_granted('REFERENCE_UPDATE') or is_granted('ROLE_ADMIN') %}
+                                    <a href="{{ path('admin_reference_edit', {category: current_category.slug, id: item.id}) }}" class="kt-btn kt-btn-ghost kt-btn-sm text-foreground hover:bg-secondary/60 inline-flex items-center gap-1 px-2.5 py-1 text-xs" title="Modifier">
+                                        <i class="ki-filled ki-notepad-edit text-xs"></i>
+                                        <span>Modifier</span>
+                                    </a>
+
+                                    <form method="post" action="{{ path('admin_reference_toggle', {category: current_category.slug, id: item.id}) }}" class="inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('ref_toggle_' ~ item.id) }}">
+                                        <button type="submit" class="kt-btn kt-btn-ghost kt-btn-sm {{ item.active ? 'text-destructive hover:bg-destructive/10' : 'text-emerald-600 hover:bg-emerald-50' }} px-2 py-1 text-xs" title="{{ item.active ? 'Désactiver' : 'Activer' }}">
+                                            <i class="ki-filled ki-{{ item.active ? 'cross-circle' : 'check-circle' }} text-xs"></i>
+                                            <span>{{ item.active ? 'Désactiver' : 'Activer' }}</span>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-xs text-muted-foreground">
+                            <i class="ki-filled ki-information-2 text-2xl text-muted-foreground/60 mb-2 block"></i>
+                            Aucun élément enregistré dans cette catégorie de référentiel.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Section Circuits Administratifs Configurables -->
+<div class="kt-card bg-background border border-border/80 shadow-xs rounded-xl p-6">
+    <div class="flex items-center justify-between pb-4 border-b border-border/60 mb-6">
+        <div class="flex items-center gap-2.5">
+            <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <i class="ki-filled ki-route text-base"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-foreground">Circuits Administratifs Types</h3>
+                <span class="text-xs text-muted-foreground">Modèles types de cheminement séquentiel des courriers et dossiers</span>
+            </div>
+        </div>
+        <span class="kt-badge kt-badge-outline kt-badge-sm px-2.5 py-0.5 rounded-full text-[10px] font-semibold">
+            {{ circuits|length }} circuit(s) configuré(s)
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for circuit in circuits %}
+            <div class="p-5 rounded-xl border border-border bg-secondary/10 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-bold text-foreground">{{ circuit.label }}</h4>
+                        <code class="text-[10px] font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{{ circuit.code }}</code>
+                    </div>
+                    {% if circuit.description %}
+                        <p class="text-xs text-muted-foreground mb-4">{{ circuit.description }}</p>
+                    {% endif %}
+
+                    <!-- Timeline des étapes -->
+                    <div class="flex flex-col gap-2 pt-2 border-t border-border/40">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Étapes du circuit :
+                        </span>
+                        {% for step in circuit.steps %}
+                            <div class="flex items-start gap-2.5 text-xs">
+                                <span class="size-5 rounded-full bg-primary/10 text-primary font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                    {{ step.position }}
+                                </span>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-foreground leading-tight">
+                                        {{ step.organizationUnit.name }}
+                                    </span>
+                                    {% if step.label %}
+                                        <span class="text-[11px] text-muted-foreground">{{ step.label }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <span class="text-xs text-muted-foreground italic">Aucune étape définie.</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

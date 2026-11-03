@@ -1,0 +1,182 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ edit ? 'Modifier le circuit' : 'Nouveau circuit' }} &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}{{ edit ? 'Édition Circuit Administratif' : 'Nouveau Circuit Administratif' }}{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_circuits')},
+    {'label': 'Circuits administratifs', 'url': path('admin_circuits')},
+    {'label': edit ? 'Modifier ' ~ circuit.label : 'Nouveau circuit'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            {{ edit ? 'Modification du circuit : ' ~ circuit.label : 'Création d\'un circuit administratif' }}
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            Définit la succession des structures habilitées à instruire et valider les dossiers dans ce circuit.
+        </p>
+    </div>
+    <a href="{{ path('admin_circuits') }}" class="kt-btn kt-btn-outline kt-btn-sm inline-flex items-center gap-1.5">
+        <i class="ki-filled ki-arrow-left text-xs"></i>
+        <span>Retour à la liste</span>
+    </a>
+</div>
+
+<div class="max-w-4xl mx-auto">
+    <form method="post" action="{{ edit ? path('admin_circuit_edit', {id: circuit.id}) : path('admin_circuit_new') }}" class="flex flex-col gap-6">
+        <input type="hidden" name="_token" value="{{ edit ? csrf_token('admin_circuit_edit_' ~ circuit.id) : csrf_token('admin_circuit_new') }}">
+
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-route"></i>
+                    </div>
+                    <h3 class="kt-card-title">Paramètres Généraux du Circuit</h3>
+                </div>
+            </div>
+
+            <div class="p-6 flex flex-col gap-5">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="code" class="text-xs font-semibold text-foreground">Code technique unique <span class="text-destructive">*</span></label>
+                    <input
+                        type="text"
+                        id="code"
+                        name="code"
+                        required
+                        {{ edit ? 'readonly disabled' : '' }}
+                        value="{{ edit ? circuit.code : '' }}"
+                        placeholder="ex: CIRCUIT_EXPORTATION"
+                        class="kt-input px-3 py-2 text-xs font-mono uppercase rounded-lg border border-border {{ edit ? 'bg-secondary/40 text-muted-foreground' : 'bg-background' }}"
+                    >
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="label" class="text-xs font-semibold text-foreground">Intitulé du circuit <span class="text-destructive">*</span></label>
+                    <input
+                        type="text"
+                        id="label"
+                        name="label"
+                        required
+                        value="{{ edit ? circuit.label : '' }}"
+                        placeholder="ex: Circuit d'Agrément d'Exportation"
+                        class="kt-input px-3 py-2 text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+
+                <div class="flex flex-col gap-1.5 sm:col-span-2">
+                    <label for="description" class="text-xs font-semibold text-foreground">Description fonctionnelle</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="2"
+                        placeholder="Précisez le champ d'application de ce circuit administratif..."
+                        class="kt-textarea px-3 py-2 text-xs rounded-lg border border-border bg-background"
+                    >{{ edit ? circuit.description : '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-border flex items-center justify-between">
+                <h3 class="text-sm font-bold text-foreground flex items-center gap-2">
+                    <i class="ki-filled ki-abstract-26 text-primary"></i>
+                    <span>Étapes du Circuit (Ordonnancement Hiérarchique)</span>
+                </h3>
+                <button type="button" id="add_step_btn" class="kt-btn kt-btn-outline kt-btn-xs px-2.5 py-1 text-xs">
+                    <i class="ki-filled ki-plus text-xs mr-1"></i> Ajouter une étape
+                </button>
+            </div>
+
+            <div id="steps_container" class="flex flex-col gap-3">
+                {% if edit and circuit.steps|length > 0 %}
+                    {% for step in circuit.steps %}
+                        <div class="step-row flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/15">
+                            <span class="step-num size-6 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                                {{ loop.index }}
+                            </span>
+                            <div class="grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <select name="step_units[]" class="kt-select px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                                    {% for st in structures %}
+                                        <option value="{{ st.id }}" {{ step.organizationUnit.id == st.id ? 'selected' : '' }}>{{ st.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" name="step_labels[]" value="{{ step.label|default('') }}" placeholder="Libellé étape (ex: Instruction technique)" class="kt-input px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                                <input type="number" name="step_durations[]" value="{{ step.standardDurationHours|default(48) }}" placeholder="Délai (heures)" class="kt-input px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                            </div>
+                            <button type="button" class="remove-step-btn kt-btn kt-btn-ghost kt-btn-xs text-destructive hover:bg-destructive/10">
+                                <i class="ki-filled ki-trash text-xs"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="step-row flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/15">
+                        <span class="step-num size-6 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">1</span>
+                        <div class="grow grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <select name="step_units[]" class="kt-select px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                                {% for st in structures %}
+                                    <option value="{{ st.id }}">{{ st.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="text" name="step_labels[]" placeholder="Libellé étape (ex: Réception et analyse)" class="kt-input px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                            <input type="number" name="step_durations[]" value="48" placeholder="Délai (heures)" class="kt-input px-2.5 py-1.5 text-xs rounded border border-border bg-background sm:col-span-1">
+                        </div>
+                        <button type="button" class="remove-step-btn kt-btn kt-btn-ghost kt-btn-xs text-destructive hover:bg-destructive/10">
+                            <i class="ki-filled ki-trash text-xs"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-6 border-t border-border/40 mt-4">
+                <a href="{{ path('admin_circuits') }}" class="kt-btn kt-btn-outline kt-btn-md px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Annuler</a>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-md px-7 py-2.5 text-xs font-semibold shadow-sm inline-flex items-center gap-1.5">
+                    <i class="ki-filled ki-check text-xs mr-1"></i>
+                    {{ edit ? 'Enregistrer les modifications' : 'Créer le circuit' }}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('steps_container');
+        const addBtn = document.getElementById('add_step_btn');
+
+        function reindex() {
+            container.querySelectorAll('.step-row').forEach((row, i) => {
+                row.querySelector('.step-num').textContent = (i + 1);
+            });
+        }
+
+        addBtn.addEventListener('click', function () {
+            const firstRow = container.querySelector('.step-row');
+            if (firstRow) {
+                const clone = firstRow.cloneNode(true);
+                clone.querySelectorAll('input').forEach(inp => {
+                    if (inp.name === 'step_durations[]') inp.value = '48';
+                    else inp.value = '';
+                });
+                container.appendChild(clone);
+                reindex();
+            }
+        });
+
+        container.addEventListener('click', function (e) {
+            if (e.target.closest('.remove-step-btn')) {
+                if (container.querySelectorAll('.step-row').length > 1) {
+                    e.target.closest('.step-row').remove();
+                    reindex();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+

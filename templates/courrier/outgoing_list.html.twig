@@ -1,0 +1,137 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}Registre des Courriers Sortants — MCI e-Circuit{% endblock %}
+{% block page_title %}Registre des Courriers Sortants{% endblock %}
+
+{% block body %}
+<div class="flex flex-col gap-6">
+
+    <!-- Actions & Filter Bar -->
+    <div class="kt-card kt-card-data overflow-hidden">
+        <div class="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60">
+            <div>
+                <h2 class="text-base font-bold text-foreground">Registre Officiel des Courriers Sortants</h2>
+                <p class="text-xs text-muted-foreground mt-0.5">Suivi de la rédaction, de la validation, de la signature et de l'expédition des correspondances officielles ({{ total_count }} enregistrés)</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <a href="{{ path('courrier_outgoing_new') }}" class="kt-btn kt-btn-primary kt-btn-sm py-2.5 px-4 inline-flex items-center gap-2 shadow-xs">
+                    <i class="ki-filled ki-plus text-xs"></i>
+                    <span>Préparer un courrier sortant</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <form method="get" action="{{ path('courrier_outgoing_list') }}" class="p-5 bg-secondary/10 border-b border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="flex flex-col gap-1 lg:col-span-2">
+                <label for="search" class="text-[11px] font-semibold text-foreground">Recherche libre</label>
+                <div class="relative">
+                    <i class="ki-filled ki-magnifier text-xs text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input
+                        type="text"
+                        id="search"
+                        name="search"
+                        value="{{ filters.search|default('') }}"
+                        placeholder="Réf MCI-OUT-..., objet, destinataire..."
+                        class="kt-input pl-8 pr-3 py-1.5 w-full text-xs rounded-lg border border-border bg-background"
+                    >
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="status" class="text-[11px] font-semibold text-foreground">Statut d'expédition</label>
+                <select id="status" name="status" class="kt-select px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+                    <option value="">Tous les statuts</option>
+                    {% for st in statuses %}
+                        <option value="{{ st.value }}" {{ filters.status == st.value ? 'selected' : '' }}>{{ st.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="date_from" class="text-[11px] font-semibold text-foreground">Du</label>
+                <input type="date" id="date_from" name="date_from" value="{{ filters.dateFrom|default('') }}" class="kt-input px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+            </div>
+
+            <div class="flex items-end gap-2">
+                <div class="flex flex-col gap-1 grow">
+                    <label for="date_to" class="text-[11px] font-semibold text-foreground">Au</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ filters.dateTo|default('') }}" class="kt-input px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background">
+                </div>
+                <button type="submit" class="kt-btn kt-btn-primary kt-btn-sm py-2 px-3 text-xs">Filtrer</button>
+            </div>
+        </form>
+
+        <!-- Tableau des courriers sortants -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-secondary/20 border-b border-border text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        <th class="py-3.5 px-4">Référence</th>
+                        <th class="py-3.5 px-4">Date</th>
+                        <th class="py-3.5 px-4">Objet</th>
+                        <th class="py-3.5 px-4">Destinataire</th>
+                        <th class="py-3.5 px-4">Structure émettrice</th>
+                        <th class="py-3.5 px-4">Dossier lié</th>
+                        <th class="py-3.5 px-4">Statut</th>
+                        <th class="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border/60 text-xs">
+                    {% for corr in correspondences %}
+                        <tr class="hover:bg-secondary/15 transition-colors">
+                            <td class="py-3.5 px-4 font-mono font-bold text-primary whitespace-nowrap">
+                                <a href="{{ path('courrier_outgoing_show', {id: corr.id}) }}" class="hover:underline flex items-center gap-1.5">
+                                    <i class="ki-filled ki-send text-xs text-primary"></i>
+                                    <span>{{ corr.reference }}</span>
+                                </a>
+                            </td>
+                            <td class="py-3.5 px-4 text-muted-foreground whitespace-nowrap">
+                                {{ corr.createdAt|date('d/m/Y H:i') }}
+                            </td>
+                            <td class="py-3.5 px-4 font-semibold text-foreground max-w-xs truncate" title="{{ corr.subject }}">
+                                {{ corr.subject }}
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="font-medium text-foreground">{{ corr.recipientName|default('—') }}</div>
+                                {% if corr.recipientOrganisation %}
+                                    <div class="text-[11px] text-muted-foreground">{{ corr.recipientOrganisation }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-muted-foreground">
+                                {{ corr.issuingStructure ? corr.issuingStructure.name : '—' }}
+                            </td>
+                            <td class="py-3.5 px-4 font-mono">
+                                {% if corr.case %}
+                                    <a href="{{ path('dossier_show', {id: corr.case.id}) }}" class="text-primary hover:underline">
+                                        {{ corr.case.reference }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted-foreground">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 text-[10px] font-bold rounded-full {{ corr.status.value == 'SENT' ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20' : (corr.status.value == 'READY_TO_SEND' or corr.status.value == 'VALIDATED' ? 'bg-blue-500/10 text-blue-700 border border-blue-500/20' : 'bg-amber-500/10 text-amber-700 border border-amber-500/20') }}">
+                                    {{ corr.status.label }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                <a href="{{ path('courrier_outgoing_show', {id: corr.id}) }}" class="kt-btn kt-btn-outline kt-btn-xs px-2.5 py-1 text-xs">
+                                    Consulter
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="py-10 text-center text-muted-foreground italic">
+                                Aucun courrier sortant enregistré pour les critères sélectionnés.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

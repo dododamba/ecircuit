@@ -1,0 +1,171 @@
+{% extends 'layouts/admin.html.twig' %}
+
+{% block title %}{{ edit ? 'Modifier l\'utilisateur' : 'Créer un utilisateur' }} &bull; MCI e-Circuit{% endblock %}
+{% block page_title %}{{ edit ? 'Édition Utilisateur' : 'Nouvel Utilisateur' }}{% endblock %}
+
+{% block body %}
+{% set breadcrumbs = [
+    {'label': 'Administration', 'url': path('admin_users')},
+    {'label': 'Utilisateurs', 'url': path('admin_users')},
+    {'label': edit ? 'Modifier ' ~ user.fullName : 'Créer un compte'}
+] %}
+{% include 'partials/breadcrumbs.html.twig' with {'breadcrumbs': breadcrumbs} %}
+
+<!-- En-tête -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/60 mb-6">
+    <div>
+        <h2 class="text-xl font-bold tracking-tight text-foreground">
+            {{ edit ? 'Modification du compte : ' ~ user.fullName : 'Création d\'un compte utilisateur institutionnel' }}
+        </h2>
+        <p class="text-xs text-muted-foreground mt-0.5">
+            {{ edit ? 'Mettez à jour les données d\'affectation, les rôles ou le mot de passe.' : 'Renseignez l\'identité, l\'affectation administrative et les habilitations de l\'agent.' }}
+        </p>
+    </div>
+    <a href="{{ path('admin_users') }}" class="kt-btn kt-btn-outline kt-btn-sm inline-flex items-center gap-1.5">
+        <i class="ki-filled ki-arrow-left text-xs"></i>
+        <span>Retour à la liste</span>
+    </a>
+</div>
+
+<!-- Formulaire Metronic -->
+<div class="max-w-4xl mx-auto">
+    <form method="post" action="{{ edit ? path('admin_user_edit', {id: user.id}) : path('admin_user_new') }}" class="flex flex-col gap-6">
+        <input type="hidden" name="_token" value="{{ edit ? csrf_token('admin_user_edit_' ~ user.id) : csrf_token('admin_user_new') }}">
+
+        <!-- Carte Identité -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-user"></i>
+                    </div>
+                    <h3 class="kt-card-title">Identité & Contact</h3>
+                </div>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="firstName" class="text-xs font-semibold text-foreground">Prénom <span class="text-destructive">*</span></label>
+                    <input type="text" id="firstName" name="firstName" required value="{{ edit ? user.firstName : '' }}" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="ex: Jean">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="lastName" class="text-xs font-semibold text-foreground">Nom <span class="text-destructive">*</span></label>
+                    <input type="text" id="lastName" name="lastName" required value="{{ edit ? user.lastName : '' }}" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="ex: Kouassi">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="email" class="text-xs font-semibold text-foreground">Adresse e-mail <span class="text-destructive">*</span></label>
+                    <input type="email" id="email" name="email" required {{ edit ? 'readonly disabled' : '' }} value="{{ edit ? user.email : '' }}" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border {{ edit ? 'bg-secondary/40 text-muted-foreground' : 'bg-background' }}" placeholder="agent@mci.gov.td">
+                    {% if edit %}
+                        <span class="text-[10px] text-muted-foreground">L'adresse email ne peut pas être modifiée après création.</span>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="phone" class="text-xs font-semibold text-foreground">Téléphone</label>
+                    <input type="text" id="phone" name="phone" value="{{ edit ? user.phone : '' }}" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="+235 66 00 00 00">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="username" class="text-xs font-semibold text-foreground">Nom d'utilisateur (login)</label>
+                    <input type="text" id="username" name="username" value="{{ edit ? user.username : '' }}" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="jkouassi">
+                </div>
+
+                {% if edit %}
+                    <div class="flex flex-col gap-1.5">
+                        <label for="status" class="text-xs font-semibold text-foreground">Statut du compte</label>
+                        <select id="status" name="status" class="kt-select px-3 py-2 w-full text-xs rounded-lg border border-border bg-background">
+                            <option value="ACTIVE" {{ user.status.value == 'ACTIVE' ? 'selected' : '' }}>Actif</option>
+                            <option value="INACTIVE" {{ user.status.value == 'INACTIVE' ? 'selected' : '' }}>Inactif</option>
+                            <option value="LOCKED" {{ user.status.value == 'LOCKED' ? 'selected' : '' }}>Verrouillé</option>
+                        </select>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Carte Mot de Passe -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-key"></i>
+                    </div>
+                    <h3 class="kt-card-title">Authentification</h3>
+                </div>
+            </div>
+            
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="password" class="text-xs font-semibold text-foreground">
+                        {{ edit ? 'Nouveau mot de passe (laisser vide pour conserver l\'actuel)' : 'Mot de passe initial *' }}
+                    </label>
+                    <input type="password" id="password" name="password" {{ edit ? '' : 'required' }} minlength="8" autocomplete="new-password" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="••••••••">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="password_confirmation" class="text-xs font-semibold text-foreground">
+                        {{ edit ? 'Confirmer le nouveau mot de passe' : 'Confirmation du mot de passe *' }}
+                    </label>
+                    <input type="password" id="password_confirmation" name="password_confirmation" {{ edit ? '' : 'required' }} minlength="8" autocomplete="new-password" class="kt-input px-3 py-2 w-full text-xs rounded-lg border border-border bg-background" placeholder="••••••••">
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte Organisation & Rôles -->
+        <div class="kt-card kt-card-form overflow-hidden">
+            <div class="kt-card-header">
+                <div class="flex items-center gap-3">
+                    <div class="kt-card-icon">
+                        <i class="ki-filled ki-bank"></i>
+                    </div>
+                    <h3 class="kt-card-title">Affectation Administrative & Rôles</h3>
+                </div>
+            </div>
+            
+            <div class="p-6 flex flex-col gap-5">
+                <div class="flex flex-col gap-1.5">
+                    <label for="structure_id" class="text-xs font-semibold text-foreground">Structure d'affectation</label>
+                    <select id="structure_id" name="structure_id" class="kt-select px-3 py-2 w-full text-xs rounded-lg border border-border bg-background">
+                        <option value="">-- Aucune structure affectée --</option>
+                        {% for structure in structures %}
+                            <option value="{{ structure.id }}" {{ edit and user.organizationUnit and user.organizationUnit.id == structure.id ? 'selected' : '' }}>
+                                {{ structure.hierarchyPath }} ({{ structure.type.value }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2 border-t border-border/40">
+                    <label class="text-xs font-semibold text-foreground block">
+                        Rôle(s) institutionnel(s) accordé(s) :
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for role in roles %}
+                            {% set isAssigned = edit and user.hasAccessRole(role.code) %}
+                            <label class="flex items-start gap-2.5 p-3 rounded-lg border border-border bg-secondary/10 hover:bg-secondary/30 cursor-pointer transition-colors">
+                                <input type="checkbox" name="roles[]" value="{{ role.id }}" {{ isAssigned ? 'checked' : '' }} class="mt-0.5 rounded text-primary focus:ring-primary">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-foreground leading-tight">{{ role.label }}</span>
+                                    <span class="text-[10px] text-muted-foreground font-mono mt-0.5">{{ role.code }}</span>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 pb-12 border-t border-border/40 mt-2">
+            <a href="{{ path('admin_users') }}" class="kt-btn kt-btn-outline kt-btn-md px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                Annuler et retourner
+            </a>
+            <button type="submit" class="kt-btn kt-btn-primary kt-btn-md px-7 py-2.5 shadow-sm font-semibold inline-flex items-center gap-2 text-xs">
+                <i class="ki-filled ki-check text-xs"></i>
+                <span>{{ edit ? 'Enregistrer les modifications' : 'Créer l\'utilisateur' }}</span>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
