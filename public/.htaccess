@@ -1,0 +1,51 @@
+# Désactive MultiViews (important pour Symfony)
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+# Active la réécriture d’URL
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    ##############################################
+    # 🔐 Forcer HTTPS sur o2switch (Proxy/LiteSpeed)
+    ##############################################
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    ##############################################
+    # 📌 Redirige toutes les requêtes vers index.php
+    ##############################################
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+##############################################
+# 🚫 Empêcher l'accès aux fichiers sensibles
+##############################################
+<FilesMatch "\.(env|env\.local|env\.prod|yaml|yml|xml|lock|sql|sqlite)$">
+    Require all denied
+</FilesMatch>
+
+##############################################
+# 🗂 Empêcher l’indexation des dossiers
+##############################################
+Options -Indexes
+
+##############################################
+# 🚀 Cache navigateur pour les assets
+##############################################
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
