@@ -13,6 +13,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserFixtures extends Fixture
 {
+    public const ADMIN_EMAIL = 'admin@mci.local';
+    public const ADMIN_PASSWORD = 'AdminDevSecret2026!';
     public const TEST_USER_EMAIL = 'user.test@mci.gov';
     public const TEST_USER_PASSWORD = 'Password123!';
     public const TEST_ADMIN_EMAIL = 'admin.test@mci.gov';
@@ -37,20 +39,40 @@ class UserFixtures extends Fixture
             $manager->persist($roleAdmin);
         }
 
-        // 2. Récupération ou création de la structure de rattachement
+        // 2. Récupération ou création des structures de rattachement
+        $ministere = $manager->getRepository(OrganizationUnit::class)->findOneBy(['code' => 'MINISTERE']);
+        if (!$ministere) {
+            $ministere = new OrganizationUnit('MINISTERE', 'Ministère du Commerce et de l’Industrie', StructureType::Ministere);
+            $manager->persist($ministere);
+        }
+
         $structure = $manager->getRepository(OrganizationUnit::class)->findOneBy(['code' => 'DIRECTION_COMMERCE_INTERIEUR']);
         if (!$structure) {
-            $structure = $manager->getRepository(OrganizationUnit::class)->findOneBy(['code' => 'MINISTERE']);
-        }
-        if (!$structure) {
-            $structure = new OrganizationUnit('Direction du Commerce Intérieur', 'DIRECTION_COMMERCE_INTERIEUR', StructureType::Direction);
+            $structure = new OrganizationUnit('DIRECTION_COMMERCE_INTERIEUR', 'Direction du Commerce Intérieur', StructureType::Direction);
+            $structure->setParent($ministere);
             $manager->persist($structure);
         }
 
-        // 3. Création ou mise à jour de l'utilisateur de test standard
+        // 3. Création ou mise à jour de l'administrateur principal
+        $mainAdmin = $manager->getRepository(User::class)->findOneBy(['email' => self::ADMIN_EMAIL]);
+        if (!$mainAdmin) {
+            $mainAdmin = new User(self::ADMIN_EMAIL, 'Administrateur', 'MCI');
+            $manager->persist($mainAdmin);
+        }
+
+        $mainAdmin->setUsername('admin');
+        $mainAdmin->setFirstName('Administrateur');
+        $mainAdmin->setLastName('MCI');
+        $mainAdmin->setPhone('+241 01 00 00 00');
+        $mainAdmin->setStatus(AccountStatus::Active);
+        $mainAdmin->setOrganizationUnit($ministere);
+        $mainAdmin->addAccessRole($roleAdmin);
+        $mainAdmin->setPassword($this->passwordHasher->hashPassword($mainAdmin, self::ADMIN_PASSWORD));
+
+        // 4. Création ou mise à jour de l'utilisateur de test standard
         $testUser = $manager->getRepository(User::class)->findOneBy(['email' => self::TEST_USER_EMAIL]);
         if (!$testUser) {
-            $testUser = new User(self::TEST_USER_EMAIL, 'Test', 'UTILISATEUR');
+            $testUser = new User(self::TEST_USER_EMAIL, 'Jean', 'KOUASSI');
             $manager->persist($testUser);
         }
 
@@ -63,10 +85,10 @@ class UserFixtures extends Fixture
         $testUser->addAccessRole($roleAgent);
         $testUser->setPassword($this->passwordHasher->hashPassword($testUser, self::TEST_USER_PASSWORD));
 
-        // 4. Création ou mise à jour d'un administrateur de test
+        // 5. Création ou mise à jour d'un administrateur de test
         $adminUser = $manager->getRepository(User::class)->findOneBy(['email' => self::TEST_ADMIN_EMAIL]);
         if (!$adminUser) {
-            $adminUser = new User(self::TEST_ADMIN_EMAIL, 'Admin', 'TEST');
+            $adminUser = new User(self::TEST_ADMIN_EMAIL, 'Administrateur', 'TEST');
             $manager->persist($adminUser);
         }
 

@@ -572,29 +572,70 @@ final class SeedMciCommand
             new WorkflowTransition($wfProv, $prStep5, $prStep6, WorkflowAction::Close, 'Clôturer le dossier provincial', null, 'DOSSIER_CLOSE');
         }
 
-        // 7. Compte administrateur de développement / bootstrap
+        // 7. Comptes administrateurs et utilisateurs de test / bootstrap
         $adminMail = $this->adminEmail ? trim($this->adminEmail) : 'admin@mci.local';
-        $adminPass = $this->adminPassword ? trim($this->adminPassword) : '';
+        $adminPass = ($this->adminPassword && trim($this->adminPassword) !== '') ? trim($this->adminPassword) : 'AdminDevSecret2026!';
 
-        if ($adminPass !== '') {
-            $adminUser = $this->entityManager->getRepository(User::class)->findOneBy(['email' => strtolower($adminMail)]);
-            if (!$adminUser) {
-                $adminUser = new User($adminMail, 'Administrateur', 'MCI');
-                $adminUser->setUsername('admin');
-                $adminUser->setPhone('+241 01 00 00 00');
-                $adminUser->setOrganizationUnit($ministere);
-                $adminUser->addAccessRole($roles['ADMINISTRATEUR']);
-                $adminUser->setPassword($this->passwordHasher->hashPassword($adminUser, $adminPass));
-                $this->entityManager->persist($adminUser);
-                $io->success(sprintf('Compte administrateur créé (%s)', $adminMail));
+        $defaultUsers = [
+            [
+                'username' => 'admin',
+                'email' => $adminMail,
+                'firstName' => 'Administrateur',
+                'lastName' => 'MCI',
+                'phone' => '+241 01 00 00 00',
+                'unit' => $ministere,
+                'role' => $roles['ADMINISTRATEUR'],
+                'password' => $adminPass,
+            ],
+            [
+                'username' => 'user_test',
+                'email' => 'user.test@mci.gov',
+                'firstName' => 'Jean',
+                'lastName' => 'KOUASSI',
+                'phone' => '+225 07 01 02 03 04',
+                'unit' => $dirCommerceInterieur,
+                'role' => $roles['AGENT_TRAITEMENT'],
+                'password' => 'Password123!',
+            ],
+            [
+                'username' => 'admin_test',
+                'email' => 'admin.test@mci.gov',
+                'firstName' => 'Administrateur',
+                'lastName' => 'TEST',
+                'phone' => '+225 07 00 00 00 01',
+                'unit' => $dirCommerceInterieur,
+                'role' => $roles['ADMINISTRATEUR'],
+                'password' => 'Password123!',
+            ],
+        ];
+
+        foreach ($defaultUsers as $uData) {
+            $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => strtolower($uData['email'])])
+                ?? $this->entityManager->getRepository(User::class)->findOneBy(['username' => $uData['username']]);
+
+            if (!$user) {
+                $user = new User($uData['email'], $uData['firstName'], $uData['lastName']);
+                $this->entityManager->persist($user);
+                $created = true;
             } else {
-                $adminUser->addAccessRole($roles['ADMINISTRATEUR']);
-                $adminUser->setOrganizationUnit($ministere);
-                $adminUser->setPassword($this->passwordHasher->hashPassword($adminUser, $adminPass));
-                $io->note(sprintf('Compte administrateur mis à jour (%s)', $adminMail));
+                $user->setEmail($uData['email']);
+                $user->setFirstName($uData['firstName']);
+                $user->setLastName($uData['lastName']);
+                $created = false;
             }
-        } else {
-            $io->warning('MCI_BOOTSTRAP_ADMIN_PASSWORD non défini dans l’environnement. Aucun compte admin créé ou mis à jour.');
+
+            $user->setUsername($uData['username']);
+            $user->setPhone($uData['phone']);
+            $user->setOrganizationUnit($uData['unit']);
+            $user->addAccessRole($uData['role']);
+            $user->activate();
+            $user->setPassword($this->passwordHasher->hashPassword($user, $uData['password']));
+
+            if ($created) {
+                $io->success(sprintf('Compte créé : %s (%s)', $uData['username'], $uData['email']));
+            } else {
+                $io->note(sprintf('Compte mis à jour : %s (%s)', $uData['username'], $uData['email']));
+            }
         }
 
         $this->entityManager->flush();
