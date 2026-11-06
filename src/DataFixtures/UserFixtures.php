@@ -2,6 +2,7 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\AccessPermission;
 use App\Entity\AccessRole;
 use App\Entity\OrganizationUnit;
 use App\Entity\User;
@@ -26,6 +27,63 @@ class UserFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
+        // 0. Permissions granulaires essentielles
+        $permissionDefs = [
+            'AUTH_LOGIN' => ['Connexion au système', 'Authentification'],
+            'AUTH_LOGOUT' => ['Déconnexion', 'Authentification'],
+            'USER_VIEW' => ['Consulter les utilisateurs', 'Utilisateurs'],
+            'USER_CREATE' => ['Créer un compte utilisateur', 'Utilisateurs'],
+            'USER_UPDATE' => ['Modifier un utilisateur', 'Utilisateurs'],
+            'USER_ACTIVATE' => ['Activer un compte utilisateur', 'Utilisateurs'],
+            'USER_DEACTIVATE' => ['Désactiver un compte utilisateur', 'Utilisateurs'],
+            'USER_RESET_PASSWORD' => ['Réinitialiser le mot de passe', 'Utilisateurs'],
+            'ROLE_VIEW' => ['Consulter les rôles', 'Accès'],
+            'ROLE_CREATE' => ['Créer un rôle', 'Accès'],
+            'ROLE_UPDATE' => ['Modifier un rôle', 'Accès'],
+            'ROLE_EDIT' => ['Modifier un rôle', 'Accès'],
+            'PERMISSION_VIEW' => ['Consulter les permissions', 'Accès'],
+            'PERMISSION_ASSIGN' => ['Affecter des permissions aux rôles', 'Accès'],
+            'STRUCTURE_VIEW' => ['Consulter les structures administratives', 'Organisation'],
+            'STRUCTURE_CREATE' => ['Créer une structure', 'Organisation'],
+            'STRUCTURE_UPDATE' => ['Modifier une structure', 'Organisation'],
+            'REFERENCE_VIEW' => ['Consulter les référentiels métiers', 'Référentiels'],
+            'REFERENCE_CREATE' => ['Créer un élément de référentiel', 'Référentiels'],
+            'REFERENCE_UPDATE' => ['Modifier un élément de référentiel', 'Référentiels'],
+            'CIRCUIT_VIEW' => ['Consulter les circuits administratifs', 'Circuits'],
+            'CIRCUIT_CREATE' => ['Créer un circuit administratif', 'Circuits'],
+            'CIRCUIT_UPDATE' => ['Modifier un circuit administratif', 'Circuits'],
+            'AUDIT_VIEW' => ['Consulter les journaux d’audit', 'Audit'],
+            'COURRIER_VIEW' => ['Consulter les courriers', 'Courrier'],
+            'COURRIER_CREATE' => ['Enregistrer un courrier entrant', 'Courrier'],
+            'COURRIER_EDIT' => ['Modifier un courrier', 'Courrier'],
+            'COURRIER_TRANSMIT' => ['Transmettre un courrier', 'Courrier'],
+            'DOSSIER_VIEW' => ['Consulter les courriers et dossiers', 'Dossiers'],
+            'DOSSIER_CREATE' => ['Créer / enregistrer un dossier', 'Dossiers'],
+            'DOSSIER_EDIT' => ['Modifier un dossier', 'Dossiers'],
+            'DOSSIER_ASSIGN' => ['Affecter un dossier à une structure ou un agent', 'Dossiers'],
+            'DOSSIER_CLOSE' => ['Clôturer un dossier', 'Dossiers'],
+            'DOSSIER_ARCHIVE' => ['Archiver un dossier', 'Dossiers'],
+            'DOSSIER_ANNOTATE' => ['Annoter un dossier', 'Dossiers'],
+            'DOSSIER_FORWARD' => ['Transmettre / orienter un dossier', 'Dossiers'],
+            'DOSSIER_TREAT' => ['Traiter un dossier', 'Dossiers'],
+            'DOSSIER_VALIDATE' => ['Valider un dossier', 'Dossiers'],
+            'DOSSIER_SIGN' => ['Signer un document / dossier', 'Dossiers'],
+            'DOCUMENT_VIEW' => ['Consulter les documents et pièces jointes', 'Documents'],
+            'DOCUMENT_UPLOAD' => ['Téléverser des pièces et documents', 'Documents'],
+            'DOCUMENT_DOWNLOAD' => ['Télécharger les documents', 'Documents'],
+            'DOCUMENT_DELETE' => ['Supprimer un document', 'Documents'],
+        ];
+
+        $permissions = [];
+        foreach ($permissionDefs as $code => [$label, $module]) {
+            $perm = $manager->getRepository(AccessPermission::class)->findOneBy(['code' => $code]);
+            if (!$perm) {
+                $perm = new AccessPermission($code, $label, $module);
+                $manager->persist($perm);
+            }
+            $permissions[$code] = $perm;
+        }
+
         // 1. Récupération ou création des rôles nécessaires
         $roleAgent = $manager->getRepository(AccessRole::class)->findOneBy(['code' => 'AGENT_TRAITEMENT']);
         if (!$roleAgent) {
@@ -37,6 +95,20 @@ class UserFixtures extends Fixture
         if (!$roleAdmin) {
             $roleAdmin = new AccessRole('ADMINISTRATEUR', 'Administrateur', 'Administration système et gestion des habilitations.');
             $manager->persist($roleAdmin);
+        }
+
+        foreach ($permissions as $permission) {
+            $roleAdmin->grant($permission);
+        }
+
+        foreach ([
+            'AUTH_LOGIN', 'AUTH_LOGOUT', 'STRUCTURE_VIEW', 'REFERENCE_VIEW',
+            'COURRIER_VIEW', 'DOSSIER_VIEW', 'DOSSIER_TREAT', 'DOSSIER_FORWARD',
+            'DOCUMENT_VIEW', 'DOCUMENT_UPLOAD', 'DOCUMENT_DOWNLOAD',
+        ] as $code) {
+            if (isset($permissions[$code])) {
+                $roleAgent->grant($permissions[$code]);
+            }
         }
 
         // 2. Récupération ou création des structures de rattachement
